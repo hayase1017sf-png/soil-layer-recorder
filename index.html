@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v42 PWA</title>
+<title>土層記載文作成アプリ v44 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -152,12 +152,12 @@ textarea{min-height:120px;resize:vertical}
     <input id="siteName" type="text" placeholder="例：墨田区亀沢４丁目">
     <div class="project-title" style="margin-top:16px">調査区（任意）</div>
     <input id="sectionName" type="text" placeholder="例：調査区１　※空欄の場合は「未区分」">
-    <div class="project-title" style="margin-top:16px">壁面・断面</div>
-    <input id="projectTitle" type="text" placeholder="例：西壁、調査区１西壁、002号断面">
+    <div class="project-title" style="margin-top:16px">遺構</div>
+    <input id="projectTitle" type="text" placeholder="例：1号住居、002号土坑、1号溝">
   </div>
 
 <div class="v13-top-status">
-  <div class="v13-top-label">現在の現場 ／ 調査区 ／ 壁面・断面</div>
+  <div class="v13-top-label">現在の現場 ／ 調査区 ／ 遺構</div>
   <div id="v13TopTitle" class="v13-top-title">調査区・壁面</div>
   <div class="v15-layers-label">作成済みの層</div>
   <div id="v15Layers" class="v15-layers">まだ作成されていません。</div>
@@ -191,14 +191,14 @@ textarea{min-height:120px;resize:vertical}
   <div id="savedScreen" class="app-screen">
   <div class="card">
     <h2>保存データ</h2>
-    <div class="hint">現場名 → 調査区 → 壁面・断面 → 各層の順に開きます。調査区が未入力のデータは「未区分」に入ります。</div>
-    <input id="savedSearch" class="saved-search" type="search" placeholder="現場名・調査区・壁面名を検索" oninput="renderSaved()">
+    <div class="hint">現場名 → 調査区 → 遺構 → 各層の順に開きます。調査区が未入力のデータは「未区分」に入ります。</div>
+    <input id="savedSearch" class="saved-search" type="search" placeholder="現場名・調査区・遺構名を検索" oninput="renderSaved()">
     <select id="savedSort" class="saved-search" style="margin-top:0" onchange="renderSaved()"><option value="recent">最近更新した順</option><option value="title">名前順</option></select>
     <div class="project-manage"><button class="btn" onclick="exportBackup()">全データをバックアップ</button><button class="btn" onclick="document.getElementById('backupFile').click()">バックアップを復元</button><input id="backupFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div>
     <div id="siteList" class="site-list"></div>
     <div id="siteDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSiteList()">← 現場一覧へ</button></div><h3 id="savedSiteHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSite(selectedSavedSite)">この現場をTXT保存</button><button class="btn" onclick="printPdfForSite(selectedSavedSite)">この現場をPDF保存</button><button class="btn" onclick="deleteSite(selectedSavedSite)">この現場を削除</button></div><div id="sectionList" class="site-list"></div></div>
     <div id="sectionDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSectionList()">← 調査区一覧へ</button></div><h3 id="savedSectionHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="deleteSection(selectedSavedSite,selectedSavedSection)">この調査区を削除</button></div><div id="projectList" class="project-list"></div></div>
-    <div id="projectDetail" style="display:none"><button class="btn" onclick="backToProjectList()">← 壁面・断面一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div class="project-manage"><button class="btn" onclick="deleteProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">この壁面・断面を削除</button></div><div id="savedProjects" style="margin-top:12px"></div></div>
+    <div id="projectDetail" style="display:none"><button class="btn" onclick="backToProjectList()">← 遺構一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div class="project-manage"><button class="btn" onclick="deleteProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">この遺構を削除</button></div><div id="savedProjects" style="margin-top:12px"></div></div>
   </div>
   </div>
 </div>
@@ -243,7 +243,7 @@ let selectedSavedSite="";
 let selectedSavedSection="";
 
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function title(){return document.getElementById("projectTitle").value.trim()||"無題の壁面・断面"}
+function title(){return document.getElementById("projectTitle").value.trim()||"無題の遺構"}
 function section(){return document.getElementById("sectionName").value.trim()||"未区分"}
 function site(){return document.getElementById("siteName").value.trim()||"未分類の現場"}
 function loadHistory(){try{history=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")}catch(e){history={}}}
@@ -457,7 +457,16 @@ function loadLayer(x){
 }
 function deleteLayer(sn,sec,t,l){
  if(!confirm("第"+l+"層を削除しますか？"))return;
- delete history[key(sn,sec,t,l)];saveHistory();renderSaved();updateCurrent();
+ delete history[key(sn,sec,t,l)];saveHistory();
+ const remain=projectEntries(t,sn,sec);
+ if(remain.length){
+  renderSaved();
+ }else{
+  selectedSavedProject="";
+  hideSavedDetails();document.getElementById("sectionDetail").style.display="block";
+  renderSaved();
+ }
+ updateCurrent();
 }
 function deleteByFilter(test){
  Object.keys(history).forEach(k=>{if(test(history[k]))delete history[k]});
@@ -466,21 +475,27 @@ function deleteByFilter(test){
 function deleteSite(sn){
  if(!confirm("現場「"+sn+"」と、その中のすべてのデータを削除しますか？"))return;
  deleteByFilter(x=>x.siteName===sn);
- backToSiteList();
+ selectedSavedSite=selectedSavedSection=selectedSavedProject="";
+ hideSavedDetails();document.getElementById("siteList").style.display="";
+ renderSaved();updateCurrent();
 }
 function deleteSection(sn,sec){
- if(!confirm("調査区「"+sec+"」と、その中のすべての壁面・断面・層を削除しますか？"))return;
+ if(!confirm("調査区「"+sec+"」と、その中のすべての遺構・層を削除しますか？"))return;
  deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec);
- backToSectionList();
+ selectedSavedSection=selectedSavedProject="";
+ hideSavedDetails();document.getElementById("siteDetail").style.display="block";
+ renderSaved();updateCurrent();
 }
 function deleteProject(sn,sec,t){
- if(!confirm("壁面・断面「"+t+"」と、その中のすべての層を削除しますか？"))return;
+ if(!confirm("遺構「"+t+"」と、その中のすべての層を削除しますか？"))return;
  deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.projectTitle===t);
- backToProjectList();
+ selectedSavedProject="";
+ hideSavedDetails();document.getElementById("sectionDetail").style.display="block";
+ renderSaved();updateCurrent();
 }
 
 function normalizeHistory(){
- const out={};Object.values(history||{}).forEach(x=>{x.siteName=x.siteName||"未分類の現場";x.sectionName=x.sectionName||"未区分";x.projectTitle=x.projectTitle||"無題の壁面・断面";out[key(x.siteName,x.sectionName,x.projectTitle,x.layer)]=x});history=out;
+ const out={};Object.values(history||{}).forEach(x=>{x.siteName=x.siteName||"未分類の現場";x.sectionName=x.sectionName||"未区分";x.projectTitle=x.projectTitle||"無題の遺構";out[key(x.siteName,x.sectionName,x.projectTitle,x.layer)]=x});history=out;
 }
 function entryTime(x){const d=Date.parse(x.savedAt||"");return Number.isFinite(d)?d:0}
 function siteEntries(sn){return Object.values(history).filter(x=>x.siteName===sn)}
