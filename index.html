@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v35</title>
+<title>土層記載文作成アプリ v38 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -464,13 +464,7 @@ function buildText(t,entries){return "【"+t+"】\n"+entries.map(x=>"第"+x.laye
 function downloadText(name,text){const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name.replace(/[\\/:*?"<>|]/g,"_")+".txt";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function downloadTxtForProject(t,sn=selectedSavedSite,sec=selectedSavedSection){const e=projectEntries(t,sn,sec);if(e.length)downloadText(sn+"_"+sec+"_"+t,sn+"\n"+sec+"\n\n"+buildText(t,e))}
 function downloadTxtForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let text=sn+"\n\n";secs.forEach(sec=>{text+="【"+sec+"】\n";const walls=[...new Set(sectionEntries(sec,sn).map(x=>x.projectTitle))];walls.forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec))+"\n"})});downloadText(sn,text)}
-function printHtml(titleText,body){const w=window.open("","_blank");if(!w)return;w.document.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>body{font-family:sans-serif;margin:25mm;line-height:1.8}h1{font-size:24px}h2{margin-top:24px}h3{margin-top:18px}p{border-bottom:1px solid #ddd;padding:7px 0}</style></head><body><h1>${esc(titleText)}</h1>${body}
-<script>
-if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => {}));
-}
-</script>
-</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),300)}
+function printHtml(titleText,body){const w=window.open("","_blank");if(!w)return;w.document.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>body{font-family:sans-serif;margin:25mm;line-height:1.8}h1{font-size:24px}h2{margin-top:24px}h3{margin-top:18px}p{border-bottom:1px solid #ddd;padding:7px 0}</style></head><body><h1>${esc(titleText)}</h1>${body}</body></html>`);w.document.close();w.focus();setTimeout(()=>w.print(),300)}
 function printPdfForProject(t,sn=selectedSavedSite,sec=selectedSavedSection){const e=projectEntries(t,sn,sec);if(e.length)printHtml(sn+" / "+sec+" / "+t,`<h2>${esc(sec)}</h2><h3>${esc(t)}</h3>`+e.map(x=>`<p>${esc(x.text)}</p>`).join(""))}
 function printPdfForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let body="";secs.forEach(sec=>{body+=`<h2>${esc(sec)}</h2>`;[...new Set(sectionEntries(sec,sn).map(x=>x.projectTitle))].forEach(t=>{body+=`<h3>${esc(t)}</h3>`+projectEntries(t,sn,sec).map(x=>`<p>${esc(x.text)}</p>`).join("")})});printHtml(sn,body)}
 
@@ -512,6 +506,13 @@ function updateTopStatus(){
   if(l) l.textContent="第"+layer+"層";
 }
 
+
+// PWA: Service Worker registration
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
