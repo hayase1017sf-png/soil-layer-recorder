@@ -1,0 +1,11 @@
+{
+  "name": "土層記載文作成アプリ",
+  "short_name": "土層記載",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f5f5f5",
+  "theme_color": "#222222",
+  "lang": "ja",
+  "description": "現場で土層記載文を作成・保存するためのオフライン対応アプリ"
+}
