@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v44 PWA</title>
+<title>土層記載文作成アプリ v45 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -357,7 +357,7 @@ function removeMix(i){state.mixes.splice(i,1);renderPanel();updateOutput()}
 
 function generate(){
  let s=`第${state.layer}層`;
- const soilLabel={"土":"土","礫":"礫層","砂":"砂質土","シルト":"シルト層","粘土":"粘土"};
+ const soilLabel={"土":"土層","礫":"礫層","砂":"砂層","シルト":"シルト層","粘土":"粘土層"};
  if(state.color){
   const suffix=state.soil ? soilLabel[state.soil] : "土層";
   s+=` ${state.color[0]} ${state.color[1]}${suffix}`;
