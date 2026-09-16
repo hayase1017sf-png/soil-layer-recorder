@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v41 PWA</title>
+<title>土層記載文作成アプリ v42 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -169,6 +169,7 @@ textarea{min-height:120px;resize:vertical}
     <div id="sequence" class="sequence">第1層から順番に作成できます。</div>
     <div class="next-actions">
       <button id="saveFinish" class="btn secondary" type="button">この層を保存して終了</button>
+      <button id="finishWithoutSave" class="btn" type="button">保存せずに終了</button>
       <button id="saveNext" class="btn primary" type="button">この層を保存して「次の層」へ →</button>
       <button id="nextOnly" class="btn" type="button">保存せず「次の層」へ →</button>
     </div>
@@ -195,9 +196,9 @@ textarea{min-height:120px;resize:vertical}
     <select id="savedSort" class="saved-search" style="margin-top:0" onchange="renderSaved()"><option value="recent">最近更新した順</option><option value="title">名前順</option></select>
     <div class="project-manage"><button class="btn" onclick="exportBackup()">全データをバックアップ</button><button class="btn" onclick="document.getElementById('backupFile').click()">バックアップを復元</button><input id="backupFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div>
     <div id="siteList" class="site-list"></div>
-    <div id="siteDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSiteList()">← 現場一覧へ</button></div><h3 id="savedSiteHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSite(selectedSavedSite)">この現場をTXT保存</button><button class="btn" onclick="printPdfForSite(selectedSavedSite)">この現場をPDF保存</button></div><div id="sectionList" class="site-list"></div></div>
-    <div id="sectionDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSectionList()">← 調査区一覧へ</button></div><h3 id="savedSectionHeading" class="site-heading"></h3><div id="projectList" class="project-list"></div></div>
-    <div id="projectDetail" style="display:none"><button class="btn" onclick="backToProjectList()">← 壁面・断面一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div id="savedProjects" style="margin-top:12px"></div></div>
+    <div id="siteDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSiteList()">← 現場一覧へ</button></div><h3 id="savedSiteHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSite(selectedSavedSite)">この現場をTXT保存</button><button class="btn" onclick="printPdfForSite(selectedSavedSite)">この現場をPDF保存</button><button class="btn" onclick="deleteSite(selectedSavedSite)">この現場を削除</button></div><div id="sectionList" class="site-list"></div></div>
+    <div id="sectionDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSectionList()">← 調査区一覧へ</button></div><h3 id="savedSectionHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="deleteSection(selectedSavedSite,selectedSavedSection)">この調査区を削除</button></div><div id="projectList" class="project-list"></div></div>
+    <div id="projectDetail" style="display:none"><button class="btn" onclick="backToProjectList()">← 壁面・断面一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div class="project-manage"><button class="btn" onclick="deleteProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">この壁面・断面を削除</button></div><div id="savedProjects" style="margin-top:12px"></div></div>
   </div>
   </div>
 </div>
@@ -205,6 +206,7 @@ textarea{min-height:120px;resize:vertical}
 
 <div id="mobileBottomBar" class="mobile-bottom-bar">
   <button class="btn secondary" type="button" onclick="saveAndFinish()">保存して終了</button>
+  <button class="btn" type="button" onclick="finishWithoutSave()">保存せず終了</button>
   <button class="btn primary" type="button" onclick="saveAndNext()">保存して次の層へ →</button>
 </div>
 
@@ -428,6 +430,12 @@ function saveAndFinish(){
  saveLayer();
  showScreen("saved");
 }
+function finishWithoutSave(){
+ if(!confirm("現在入力中の変更を保存せずに終了しますか？"))return;
+ localStorage.removeItem(DRAFT_KEY);
+ resetLayer(1);
+ showScreen("saved");
+}
 function saveAndNext(){
  if(!document.getElementById("output").textContent || document.getElementById("output").textContent==="まだ文章は生成されていません。")generate();
  saveLayer();
@@ -447,7 +455,29 @@ function loadLayer(x){
  state=JSON.parse(JSON.stringify(x.data));
  active=0;renderTabs();renderPanel();generate();updateCurrent();showScreen("create");
 }
-function deleteLayer(sn,sec,t,l){delete history[key(sn,sec,t,l)];saveHistory();renderSaved();updateCurrent()}
+function deleteLayer(sn,sec,t,l){
+ if(!confirm("第"+l+"層を削除しますか？"))return;
+ delete history[key(sn,sec,t,l)];saveHistory();renderSaved();updateCurrent();
+}
+function deleteByFilter(test){
+ Object.keys(history).forEach(k=>{if(test(history[k]))delete history[k]});
+ saveHistory();
+}
+function deleteSite(sn){
+ if(!confirm("現場「"+sn+"」と、その中のすべてのデータを削除しますか？"))return;
+ deleteByFilter(x=>x.siteName===sn);
+ backToSiteList();
+}
+function deleteSection(sn,sec){
+ if(!confirm("調査区「"+sec+"」と、その中のすべての壁面・断面・層を削除しますか？"))return;
+ deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec);
+ backToSectionList();
+}
+function deleteProject(sn,sec,t){
+ if(!confirm("壁面・断面「"+t+"」と、その中のすべての層を削除しますか？"))return;
+ deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.projectTitle===t);
+ backToProjectList();
+}
 
 function normalizeHistory(){
  const out={};Object.values(history||{}).forEach(x=>{x.siteName=x.siteName||"未分類の現場";x.sectionName=x.sectionName||"未区分";x.projectTitle=x.projectTitle||"無題の壁面・断面";out[key(x.siteName,x.sectionName,x.projectTitle,x.layer)]=x});history=out;
@@ -505,9 +535,19 @@ function printPdfForSite(sn){const e=siteEntries(sn);if(!e.length)return;const s
 
 document.getElementById("sectionName").addEventListener("input",function(){updateCurrent();updateTopStatus();updateAccumulated();saveDraft();});
 document.getElementById("siteName").addEventListener("input",function(){updateCurrent();updateTopStatus();updateAccumulated();saveDraft();});
-document.getElementById("projectTitle").addEventListener("input",function(){updateCurrent();updateTopStatus();updateAccumulated();saveDraft();});
+let lastProjectInput=document.getElementById("projectTitle").value.trim();
+document.getElementById("projectTitle").addEventListener("input",function(){
+ const now=this.value.trim();
+ if(now!==lastProjectInput){
+  const exists=Object.values(history).some(x=>x.siteName===site()&&x.sectionName===section()&&x.projectTitle===now);
+  if(now&&!exists&&Number(state.layer)!==1)resetLayer(1);
+  lastProjectInput=now;
+ }
+ updateCurrent();updateTopStatus();updateAccumulated();saveDraft();
+});
 document.getElementById("clearBtn").onclick=()=>resetLayer(state.layer);
 document.getElementById("saveFinish").onclick=saveAndFinish;
+document.getElementById("finishWithoutSave").onclick=finishWithoutSave;
 document.getElementById("saveNext").onclick=saveAndNext;
 document.getElementById("nextOnly").onclick=nextOnly;
 
