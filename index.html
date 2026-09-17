@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v51 PWA</title>
+<title>土層記載文作成アプリ v52 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -134,6 +134,25 @@ textarea{min-height:120px;resize:vertical}
 
 .saved-tools .btn{min-height:34px!important;padding:6px 9px!important;font-size:12px!important;flex:0 1 auto!important;min-width:0!important}
 @media(max-width:700px){.saved-tools{display:flex!important;gap:6px}.saved-tools .btn{min-height:36px!important;padding:7px 9px!important;font-size:12px!important;flex:1 1 0!important}}
+
+
+/* v52 保存データ：層文章と色を一覧で確認 */
+.saved-layer{padding:9px 0;border-top:1px solid #eee}
+.saved-summary{cursor:default;padding:6px 0;border-bottom:0;align-items:flex-start}
+.saved-summary-text .layer-text{font-size:15px;line-height:1.5}
+.saved-summary-text .saved-date{display:none}
+.saved-chevron{display:none}
+.saved-detail{display:block!important;padding:0}
+.saved-layer .saved-tools{display:none}
+.saved-layer .saved-color-row{display:flex;float:none;margin:5px 0 0;padding:6px 8px}
+.saved-layer .saved-color-swatch{width:34px;height:34px;flex-basis:34px}
+.saved-layer .saved-color-meta{font-size:13px}
+.saved-layer .saved-detail>.btn[data-color-btn]{display:none}
+.saved-color-tools{display:none!important;margin:6px 0 10px}
+@media(max-width:700px){
+ .saved-layer{padding:8px 0}
+ .saved-summary-text .layer-text{font-size:14px;line-height:1.45}
+}
 
 </style>
 
@@ -583,7 +602,7 @@ function setAllSavedColors(show){
 function savedColorHtml(x){
  const c=x.data&&x.data.color;if(!c)return "";
  const k=savedLayerUiKey(x),visible=savedColorVisible.has(k);
- return `<button type="button" class="btn" data-color-btn="${esc(k)}" onclick='event.stopPropagation();toggleSavedColor(${JSON.stringify(k)})'>${visible?"色を非表示":"色を表示"}</button><div class="saved-color-row ${visible?"visible":""}" data-color-key="${esc(k)}"><div class="saved-color-swatch" style="background:${esc(c[2]||"#ccc")}"></div><div class="saved-color-meta"><b>${esc(c[0]||"")}</b> ${esc((String(c[1]||"").endsWith("色")?c[1]:String(c[1]||"")+"色"))}</div></div>`;
+ return `<button type="button" class="btn" data-color-btn="${esc(k)}" onclick='event.stopPropagation();toggleSavedColor(${JSON.stringify(k)})'>${visible?"色を非表示":"色を表示"}</button><div class="saved-color-row visible" data-color-key="${esc(k)}"><div class="saved-color-swatch" style="background:${esc(c[2]||"#ccc")}"></div><div class="saved-color-meta"><b>${esc(c[0]||"")}</b> ${esc((String(c[1]||"").endsWith("色")?c[1]:String(c[1]||"")+"色"))}</div></div>`;
 }
 
 function renderSaved(){
