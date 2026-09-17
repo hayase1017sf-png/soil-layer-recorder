@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v48 PWA</title>
+<title>土層記載文作成アプリ v49 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -123,6 +123,14 @@ textarea{min-height:120px;resize:vertical}
  .mobile-bottom-bar .secondary{flex:1}
  .saved-tools .btn,.project-manage .btn{min-height:46px}
 }
+
+.saved-breadcrumb{font-size:12px;color:#666;margin:10px 0 2px;line-height:1.5;word-break:break-word}
+.saved-color-tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}
+.saved-color-row{display:none;align-items:center;gap:10px;margin:8px 0 2px;padding:8px 10px;border-radius:10px;background:#f7f7f7}
+.saved-color-row.visible{display:flex}
+.saved-color-swatch{width:42px;height:42px;border-radius:8px;border:1px solid #aaa;flex:0 0 42px}
+.saved-color-meta{font-size:13px;line-height:1.45}
+
 </style>
 
 <style>
@@ -196,9 +204,9 @@ textarea{min-height:120px;resize:vertical}
     <select id="savedSort" class="saved-search" style="margin-top:0" onchange="renderSaved()"><option value="recent">最近更新した順</option><option value="title">名前順</option></select>
     <div class="project-manage"><button class="btn" onclick="exportBackup()">全データをバックアップ</button><button class="btn" onclick="document.getElementById('backupFile').click()">バックアップを復元</button><input id="backupFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div>
     <div id="siteList" class="site-list"></div>
-    <div id="siteDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSiteList()">← 現場一覧へ</button></div><h3 id="savedSiteHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSite(selectedSavedSite)">この現場をTXT保存</button><button class="btn" onclick="printPdfForSite(selectedSavedSite)">この現場をPDF保存</button><button class="btn" onclick="deleteSite(selectedSavedSite)">この現場を削除</button></div><div id="sectionList" class="site-list"></div></div>
-    <div id="sectionDetail" style="display:none"><div class="saved-navline"><button class="btn" onclick="backToSectionList()">← 調査区一覧へ</button></div><h3 id="savedSectionHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="deleteSection(selectedSavedSite,selectedSavedSection)">この調査区を削除</button></div><div id="projectList" class="project-list"></div></div>
-    <div id="projectDetail" style="display:none"><button class="btn" onclick="backToProjectList()">← 遺構一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div class="project-manage"><button class="btn" onclick="deleteProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">この遺構を削除</button></div><div id="savedProjects" style="margin-top:12px"></div></div>
+    <div id="siteDetail" style="display:none"><div id="savedSiteBreadcrumb" class="saved-breadcrumb"></div><div class="saved-navline"><button class="btn" onclick="backToSiteList()">← 現場一覧へ</button></div><h3 id="savedSiteHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSite(selectedSavedSite)">この現場をTXT保存</button><button class="btn" onclick="printPdfForSite(selectedSavedSite)">この現場をPDF保存</button><button class="btn" onclick="deleteSite(selectedSavedSite)">この現場を削除</button></div><div id="sectionList" class="site-list"></div></div>
+    <div id="sectionDetail" style="display:none"><div id="savedSectionBreadcrumb" class="saved-breadcrumb"></div><div class="saved-navline"><button class="btn" onclick="backToSectionList()">← 調査区一覧へ</button></div><h3 id="savedSectionHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="deleteSection(selectedSavedSite,selectedSavedSection)">この調査区を削除</button></div><div id="projectList" class="project-list"></div></div>
+    <div id="projectDetail" style="display:none"><div id="savedProjectBreadcrumb" class="saved-breadcrumb"></div><button class="btn" onclick="backToProjectList()">← 遺構一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div class="project-manage"><button class="btn" onclick="deleteProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">この遺構を削除</button></div><div class="saved-color-tools"><button class="btn" onclick="setAllSavedColors(true)">色を一括表示</button><button class="btn" onclick="setAllSavedColors(false)">色を一括非表示</button></div><div id="savedProjects" style="margin-top:12px"></div></div>
   </div>
   </div>
 </div>
@@ -403,27 +411,35 @@ function generate(){
  const subjectLabel=v=>soilLabel[v]||(v?String(v).replace(/層$/,"")+"層":"土層");
  if(state.color){
   const suffix=state.soil ? subjectLabel(state.soil) : "土層";
-  s+=` ${state.color[0]} ${state.color[1]}${suffix}`;
+  const colorName=String(state.color[1]||"");
+  const colorLabel=colorName.endsWith("色")?colorName:colorName+"色";
+  s+=` ${state.color[0]} ${colorLabel}${suffix}`;
  }else if(state.soil){
   s+=` ${subjectLabel(state.soil)}`;
  }else s+=" 土層";
  if(state.viscosity||state.firmness){
-  if(state.viscosity){
-   const viscosityText={"強い":"強く","やや強い":"やや強く","中位":"中位で","やや弱い":"やや弱く","弱い":"弱く"};
-   s+=` 粘性は${viscosityText[state.viscosity]||state.viscosity}`;
+  if(state.viscosity&&state.firmness&&state.viscosity===state.firmness){
+   s+=` 粘性・しまりは${state.viscosity}。`;
+  }else{
+   if(state.viscosity){
+    const viscosityText={"強い":"強く","やや強い":"やや強く","中位":"中位で","やや弱い":"やや弱く","弱い":"弱く"};
+    s+=` 粘性は${viscosityText[state.viscosity]||state.viscosity}`;
+   }
+   if(state.firmness)s+=`${state.viscosity?"、":" "}しまりは${state.firmness}`;
+   s+="。";
   }
-  if(state.firmness)s+=`、しまりは${state.firmness}`;
-  s+="。";
  }else if(state.soil||state.color)s+="。";
  if(state.mixes.length){
-  s+=" ";
-  state.mixes.forEach((m,i)=>{
-   if(i)s+="、";
-   s+=m.type;
-   if(m.size.trim())s+=`（${m.size.trim()}mm）`;
-   s+=`を${m.amount}含む`;
+  const grouped=[];
+  state.mixes.forEach(m=>{
+   const amount=m.amount||"";
+   let g=grouped.find(x=>x.amount===amount);
+   if(!g){g={amount,items:[]};grouped.push(g)}
+   let label=m.type;
+   if(String(m.size||"").trim())label+=`（${String(m.size).trim()}mm）`;
+   g.items.push(label);
   });
-  s+="。";
+  s+=" "+grouped.map(g=>g.items.join("・")+`を${g.amount}含む`).join("、")+"。";
  }
  if(state.note.trim())s+=" "+state.note.trim();
  document.getElementById("output").textContent=s;
@@ -544,6 +560,28 @@ function entryTime(x){const d=Date.parse(x.savedAt||"");return Number.isFinite(d
 function siteEntries(sn){return Object.values(history).filter(x=>x.siteName===sn)}
 function sectionEntries(sec,sn=selectedSavedSite){return Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec)}
 function projectEntries(t,sn=selectedSavedSite||site(),sec=selectedSavedSection||section()){return Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec&&x.projectTitle===t).sort((a,b)=>Number(a.layer)-Number(b.layer))}
+
+const savedColorVisible=new Set();
+function savedLayerUiKey(x){return key(x.siteName,x.sectionName,x.projectTitle,x.layer)}
+function toggleSavedColor(k){
+ if(savedColorVisible.has(k))savedColorVisible.delete(k);else savedColorVisible.add(k);
+ const row=document.querySelector(`[data-color-key="${CSS.escape(k)}"]`);
+ const btn=document.querySelector(`[data-color-btn="${CSS.escape(k)}"]`);
+ const visible=savedColorVisible.has(k);
+ if(row)row.classList.toggle("visible",visible);
+ if(btn)btn.textContent=visible?"色を非表示":"色を表示";
+}
+function setAllSavedColors(show){
+ const entries=projectEntries(selectedSavedProject,selectedSavedSite,selectedSavedSection).filter(x=>x.data&&x.data.color);
+ entries.forEach(x=>{const k=savedLayerUiKey(x);if(show)savedColorVisible.add(k);else savedColorVisible.delete(k)});
+ renderSaved();
+}
+function savedColorHtml(x){
+ const c=x.data&&x.data.color;if(!c)return "";
+ const k=savedLayerUiKey(x),visible=savedColorVisible.has(k);
+ return `<button type="button" class="btn" data-color-btn="${esc(k)}" onclick='event.stopPropagation();toggleSavedColor(${JSON.stringify(k)})'>${visible?"色を非表示":"色を表示"}</button><div class="saved-color-row ${visible?"visible":""}" data-color-key="${esc(k)}"><div class="saved-color-swatch" style="background:${esc(c[2]||"#ccc")}"></div><div class="saved-color-meta"><b>${esc(c[0]||"")}</b><br>${esc((String(c[1]||"").endsWith("色")?c[1]:String(c[1]||"")+"色"))}</div></div>`;
+}
+
 function renderSaved(){
  const q=(document.getElementById("savedSearch")?.value||"").trim().toLowerCase(),sortMode=document.getElementById("savedSort")?.value||"recent";
  const all=Object.values(history),sites={};all.forEach(x=>{(sites[x.siteName]??=[]).push(x)});
@@ -551,16 +589,16 @@ function renderSaved(){
  names.sort((a,b)=>sortMode==="title"?a.localeCompare(b,"ja"):Math.max(...sites[b].map(entryTime))-Math.max(...sites[a].map(entryTime)));
  document.getElementById("siteList").innerHTML=names.length?names.map(sn=>`<button class="site-chip" onclick='selectSavedSite(${JSON.stringify(sn)})'>${esc(sn)}</button>`).join(""):'<div class="hint">まだ保存されたデータはありません。</div>';
  if(!selectedSavedSite||!sites[selectedSavedSite])return;
- document.getElementById("savedSiteHeading").textContent=selectedSavedSite;
+ document.getElementById("savedSiteHeading").textContent=selectedSavedSite;document.getElementById("savedSiteBreadcrumb").textContent="現場："+selectedSavedSite;
  const secs={};sites[selectedSavedSite].forEach(x=>{(secs[x.sectionName]??=[]).push(x)});let secNames=Object.keys(secs).filter(v=>!q||v.toLowerCase().includes(q)||secs[v].some(x=>x.projectTitle.toLowerCase().includes(q)));secNames.sort((a,b)=>a.localeCompare(b,"ja"));
  document.getElementById("sectionList").innerHTML=secNames.map(v=>`<button class="site-chip" onclick='selectSavedSection(${JSON.stringify(v)})'>${esc(v)}（${new Set(secs[v].map(x=>x.projectTitle)).size}件）</button>`).join("");
  if(!selectedSavedSection||!secs[selectedSavedSection])return;
- document.getElementById("savedSectionHeading").textContent=selectedSavedSite+" ／ "+selectedSavedSection;
+ document.getElementById("savedSectionHeading").textContent=selectedSavedSection;document.getElementById("savedSectionBreadcrumb").textContent="現場："+selectedSavedSite+"　›　調査区："+selectedSavedSection;
  const ps={};secs[selectedSavedSection].forEach(x=>{(ps[x.projectTitle]??=[]).push(x)});let pts=Object.keys(ps).sort((a,b)=>a.localeCompare(b,"ja"));
  document.getElementById("projectList").innerHTML=pts.map(t=>`<button class="project-chip" onclick='selectSavedProject(${JSON.stringify(t)})'>${esc(t)}（${ps[t].length}層）</button>`).join("");
  if(!selectedSavedProject||!ps[selectedSavedProject])return;
- const entries=ps[selectedSavedProject].sort((a,b)=>Number(a.layer)-Number(b.layer));document.getElementById("savedProjectHeading").textContent=selectedSavedProject;
- document.getElementById("savedProjects").innerHTML=entries.map(x=>`<div class="saved-layer"><div class="saved-summary" onclick="toggleSavedLayer(this)"><div class="saved-summary-text"><div class="layer-text">${esc(x.text)}</div><div class="saved-date">${esc(x.savedAt||"")}</div></div><div class="saved-chevron">›</div></div><div class="saved-detail"><div class="saved-actions"><button class="btn primary" onclick='loadLayer(${JSON.stringify(x).replace(/'/g,"&#39;")})'>この層を編集</button><button class="btn" onclick='deleteLayer(${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)},${JSON.stringify(selectedSavedProject)},${JSON.stringify(x.layer)})'>削除</button></div></div></div>`).join("")+`<div class="saved-tools"><button class="btn" onclick='downloadTxtForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)})'>TXT保存</button><button class="btn" onclick='printPdfForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)})'>PDF保存</button></div>`;
+ const entries=ps[selectedSavedProject].sort((a,b)=>Number(a.layer)-Number(b.layer));document.getElementById("savedProjectHeading").textContent=selectedSavedProject;document.getElementById("savedProjectBreadcrumb").textContent="現場："+selectedSavedSite+"　›　調査区："+selectedSavedSection+"　›　遺構："+selectedSavedProject;
+ document.getElementById("savedProjects").innerHTML=entries.map(x=>`<div class="saved-layer"><div class="saved-summary" onclick="toggleSavedLayer(this)"><div class="saved-summary-text"><div class="layer-text">${esc(x.text)}</div><div class="saved-date">${esc(x.savedAt||"")}</div></div><div class="saved-chevron">›</div></div><div class="saved-detail">${savedColorHtml(x)}<div class="saved-actions"><button class="btn primary" onclick='loadLayer(${JSON.stringify(x).replace(/'/g,"&#39;")})'>この層を編集</button><button class="btn" onclick='deleteLayer(${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)},${JSON.stringify(selectedSavedProject)},${JSON.stringify(x.layer)})'>削除</button></div></div></div>`).join("")+`<div class="saved-tools"><button class="btn" onclick='downloadTxtForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)})'>TXT保存</button><button class="btn" onclick='printPdfForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)})'>PDF保存</button></div>`;
 }
 function hideSavedDetails(){["siteDetail","sectionDetail","projectDetail"].forEach(id=>document.getElementById(id).style.display="none")}
 function selectSavedSite(sn){selectedSavedSite=sn;selectedSavedSection="";selectedSavedProject="";document.getElementById("siteList").style.display="none";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved()}
