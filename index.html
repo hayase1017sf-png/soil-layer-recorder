@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v49 PWA</title>
+<title>土層記載文作成アプリ v51 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -126,10 +126,14 @@ textarea{min-height:120px;resize:vertical}
 
 .saved-breadcrumb{font-size:12px;color:#666;margin:10px 0 2px;line-height:1.5;word-break:break-word}
 .saved-color-tools{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 12px}
-.saved-color-row{display:none;align-items:center;gap:10px;margin:8px 0 2px;padding:8px 10px;border-radius:10px;background:#f7f7f7}
+.saved-color-row{display:none;align-items:center;gap:8px;margin:7px 0 2px;padding:8px 10px;border-radius:8px;background:#f7f7f7;width:max-content;max-width:100%}
 .saved-color-row.visible{display:flex}
-.saved-color-swatch{width:42px;height:42px;border-radius:8px;border:1px solid #aaa;flex:0 0 42px}
-.saved-color-meta{font-size:13px;line-height:1.45}
+.saved-color-swatch{width:34px;height:34px;border-radius:6px;border:1px solid #aaa;flex:0 0 34px}
+.saved-color-meta{font-size:13px;line-height:1.35;white-space:nowrap}
+
+
+.saved-tools .btn{min-height:34px!important;padding:6px 9px!important;font-size:12px!important;flex:0 1 auto!important;min-width:0!important}
+@media(max-width:700px){.saved-tools{display:flex!important;gap:6px}.saved-tools .btn{min-height:36px!important;padding:7px 9px!important;font-size:12px!important;flex:1 1 0!important}}
 
 </style>
 
@@ -579,7 +583,7 @@ function setAllSavedColors(show){
 function savedColorHtml(x){
  const c=x.data&&x.data.color;if(!c)return "";
  const k=savedLayerUiKey(x),visible=savedColorVisible.has(k);
- return `<button type="button" class="btn" data-color-btn="${esc(k)}" onclick='event.stopPropagation();toggleSavedColor(${JSON.stringify(k)})'>${visible?"色を非表示":"色を表示"}</button><div class="saved-color-row ${visible?"visible":""}" data-color-key="${esc(k)}"><div class="saved-color-swatch" style="background:${esc(c[2]||"#ccc")}"></div><div class="saved-color-meta"><b>${esc(c[0]||"")}</b><br>${esc((String(c[1]||"").endsWith("色")?c[1]:String(c[1]||"")+"色"))}</div></div>`;
+ return `<button type="button" class="btn" data-color-btn="${esc(k)}" onclick='event.stopPropagation();toggleSavedColor(${JSON.stringify(k)})'>${visible?"色を非表示":"色を表示"}</button><div class="saved-color-row ${visible?"visible":""}" data-color-key="${esc(k)}"><div class="saved-color-swatch" style="background:${esc(c[2]||"#ccc")}"></div><div class="saved-color-meta"><b>${esc(c[0]||"")}</b> ${esc((String(c[1]||"").endsWith("色")?c[1]:String(c[1]||"")+"色"))}</div></div>`;
 }
 
 function renderSaved(){
