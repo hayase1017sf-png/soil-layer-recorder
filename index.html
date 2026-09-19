@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v55 PWA</title>
+<title>土層記載文作成アプリ v56 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -213,6 +213,48 @@ textarea{min-height:120px;resize:vertical}
 .v13-top-layer{display:none}
 
 .site-list{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.site-chip{border:1px solid #aaa;background:#fff;border-radius:12px;padding:12px 16px;cursor:pointer;font-weight:700;font-size:17px}.saved-navline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.site-heading{font-size:23px;font-weight:700;margin:14px 0 6px}@media(max-width:700px){.site-list{display:grid;grid-template-columns:1fr}.site-chip{width:100%;text-align:left}}
+
+
+/* v56 層編集・削除を極小ボタン化 */
+.saved-layer .saved-tools{
+  display:flex!important;
+  gap:3px!important;
+  margin:3px 0 0!important;
+  padding:3px 0 0!important;
+  border-top:0!important;
+  justify-content:flex-start!important;
+}
+.saved-layer .saved-tools .btn{
+  display:inline-block!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  min-height:0!important;
+  height:auto!important;
+  flex:0 0 auto!important;
+  padding:1px 4px!important;
+  margin:0!important;
+  font-size:8px!important;
+  line-height:1.15!important;
+  font-weight:500!important;
+  border-radius:4px!important;
+}
+@media(max-width:700px){
+  .saved-layer .saved-tools{
+    display:flex!important;
+    grid-template-columns:none!important;
+  }
+  .saved-layer .saved-tools .btn{
+    width:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    flex:0 0 auto!important;
+    padding:1px 4px!important;
+    font-size:8px!important;
+    line-height:1.15!important;
+  }
+}
+
 </style>
 
 </head>
