@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v56 PWA</title>
+<title>土層記載文作成アプリ v57 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -729,7 +729,41 @@ function printHtml(titleText,body){
  document.body.appendChild(frame);
  const d=frame.contentDocument||frame.contentWindow.document;
  d.open();
- d.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>body{font-family:sans-serif;margin:25mm;line-height:1.8}h1{font-size:24px}h2{margin-top:24px}h3{margin-top:18px}p{border-bottom:1px solid #ddd;padding:7px 0}</style></head><body><h1>${esc(titleText)}</h1>${body}</body></html>`);
+ d.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>body{font-family:sans-serif;margin:25mm;line-height:1.8}h1{font-size:24px}h2{margin-top:24px}h3{margin-top:18px}p{border-bottom:1px solid #ddd;padding:7px 0}
+/* v57 修正：各層の「編集・削除」そのものを小型化 */
+.saved-layer .saved-actions{
+  display:flex!important;
+  gap:4px!important;
+  margin-top:5px!important;
+  justify-content:flex-start!important;
+  flex-wrap:nowrap!important;
+}
+.saved-layer .saved-actions .btn{
+  display:inline-block!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  min-height:0!important;
+  height:auto!important;
+  flex:0 0 auto!important;
+  padding:3px 7px!important;
+  margin:0!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+  border-radius:5px!important;
+}
+@media(max-width:700px){
+  .saved-layer .saved-actions .btn{
+    width:auto!important;
+    min-width:0!important;
+    min-height:0!important;
+    flex:0 0 auto!important;
+    padding:3px 7px!important;
+    font-size:10px!important;
+  }
+}
+
+</style></head><body><h1>${esc(titleText)}</h1>${body}</body></html>`);
  d.close();
  const cleanup=()=>setTimeout(()=>{if(frame.parentNode)frame.remove()},500);
  frame.contentWindow.addEventListener("afterprint",cleanup,{once:true});
