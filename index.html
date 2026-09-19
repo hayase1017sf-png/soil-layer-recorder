@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v57 PWA</title>
+<title>土層記載文作成アプリ v58 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -132,8 +132,6 @@ textarea{min-height:120px;resize:vertical}
 .saved-color-meta{font-size:13px;line-height:1.35;white-space:nowrap}
 
 
-.saved-tools .btn{min-height:34px!important;padding:6px 9px!important;font-size:12px!important;flex:0 1 auto!important;min-width:0!important}
-@media(max-width:700px){.saved-tools{display:flex!important;gap:6px}.saved-tools .btn{min-height:36px!important;padding:7px 9px!important;font-size:12px!important;flex:1 1 0!important}}
 
 
 /* v52 保存データ：層文章と色を一覧で確認 */
@@ -155,48 +153,7 @@ textarea{min-height:120px;resize:vertical}
 }
 
 
-/* v54 層の編集・削除ボタンをさらに小型化 */
-.saved-layer .saved-tools{gap:5px!important;margin-top:7px!important;padding-top:7px!important}
-.saved-layer .saved-tools .btn{
-  min-height:28px!important;
-  padding:3px 7px!important;
-  font-size:11px!important;
-  line-height:1.2!important;
-  border-radius:6px!important;
-  flex:0 0 auto!important;
-  min-width:0!important;
-}
-@media(max-width:700px){
- .saved-layer .saved-tools{display:flex!important;gap:5px!important}
- .saved-layer .saved-tools .btn{
-   min-height:30px!important;
-   padding:4px 7px!important;
-   font-size:11px!important;
-   flex:0 0 auto!important;
- }
-}
 
-
-/* v55 層の編集・削除ボタンをさらに2サイズ小型化 */
-.saved-layer .saved-tools{gap:4px!important;margin-top:5px!important;padding-top:5px!important}
-.saved-layer .saved-tools .btn{
-  min-height:22px!important;
-  padding:2px 5px!important;
-  font-size:9px!important;
-  line-height:1.1!important;
-  border-radius:5px!important;
-  flex:0 0 auto!important;
-  min-width:0!important;
-}
-@media(max-width:700px){
- .saved-layer .saved-tools{display:flex!important;gap:4px!important}
- .saved-layer .saved-tools .btn{
-   min-height:24px!important;
-   padding:2px 5px!important;
-   font-size:9px!important;
-   flex:0 0 auto!important;
- }
-}
 
 </style>
 
@@ -215,46 +172,37 @@ textarea{min-height:120px;resize:vertical}
 .site-list{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.site-chip{border:1px solid #aaa;background:#fff;border-radius:12px;padding:12px 16px;cursor:pointer;font-weight:700;font-size:17px}.saved-navline{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.site-heading{font-size:23px;font-weight:700;margin:14px 0 6px}@media(max-width:700px){.site-list{display:grid;grid-template-columns:1fr}.site-chip{width:100%;text-align:left}}
 
 
-/* v56 層編集・削除を極小ボタン化 */
-.saved-layer .saved-tools{
-  display:flex!important;
-  gap:3px!important;
-  margin:3px 0 0!important;
-  padding:3px 0 0!important;
-  border-top:0!important;
-  justify-content:flex-start!important;
-}
-.saved-layer .saved-tools .btn{
-  display:inline-block!important;
-  width:auto!important;
-  min-width:0!important;
-  max-width:none!important;
-  min-height:0!important;
-  height:auto!important;
-  flex:0 0 auto!important;
-  padding:1px 4px!important;
-  margin:0!important;
-  font-size:8px!important;
-  line-height:1.15!important;
-  font-weight:500!important;
-  border-radius:4px!important;
-}
-@media(max-width:700px){
-  .saved-layer .saved-tools{
-    display:flex!important;
-    grid-template-columns:none!important;
-  }
-  .saved-layer .saved-tools .btn{
-    width:auto!important;
-    min-width:0!important;
-    min-height:0!important;
-    flex:0 0 auto!important;
-    padding:1px 4px!important;
-    font-size:8px!important;
-    line-height:1.15!important;
-  }
-}
 
+</style>
+
+
+<style id="v58-clean-button-sizing">
+/* v58: 保存済み各層の編集・削除だけを小型化 */
+#savedProjects .saved-layer .saved-actions{
+  display:flex !important;
+  gap:4px !important;
+  margin-top:5px !important;
+  flex-wrap:nowrap !important;
+  justify-content:flex-start !important;
+}
+#savedProjects .saved-layer .saved-actions > button.btn{
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  box-sizing:border-box !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:none !important;
+  height:24px !important;
+  min-height:24px !important;
+  padding:0 7px !important;
+  margin:0 !important;
+  flex:0 0 auto !important;
+  font-size:10px !important;
+  line-height:1 !important;
+  border-radius:5px !important;
+  white-space:nowrap !important;
+}
 </style>
 
 </head>
@@ -730,38 +678,6 @@ function printHtml(titleText,body){
  const d=frame.contentDocument||frame.contentWindow.document;
  d.open();
  d.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>body{font-family:sans-serif;margin:25mm;line-height:1.8}h1{font-size:24px}h2{margin-top:24px}h3{margin-top:18px}p{border-bottom:1px solid #ddd;padding:7px 0}
-/* v57 修正：各層の「編集・削除」そのものを小型化 */
-.saved-layer .saved-actions{
-  display:flex!important;
-  gap:4px!important;
-  margin-top:5px!important;
-  justify-content:flex-start!important;
-  flex-wrap:nowrap!important;
-}
-.saved-layer .saved-actions .btn{
-  display:inline-block!important;
-  width:auto!important;
-  min-width:0!important;
-  max-width:none!important;
-  min-height:0!important;
-  height:auto!important;
-  flex:0 0 auto!important;
-  padding:3px 7px!important;
-  margin:0!important;
-  font-size:10px!important;
-  line-height:1.15!important;
-  border-radius:5px!important;
-}
-@media(max-width:700px){
-  .saved-layer .saved-actions .btn{
-    width:auto!important;
-    min-width:0!important;
-    min-height:0!important;
-    flex:0 0 auto!important;
-    padding:3px 7px!important;
-    font-size:10px!important;
-  }
-}
 
 </style></head><body><h1>${esc(titleText)}</h1>${body}</body></html>`);
  d.close();
