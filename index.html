@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v59 PWA</title>
+<title>土層記載文作成アプリ v60 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -202,6 +202,25 @@ textarea{min-height:120px;resize:vertical}
   line-height:1 !important;
   border-radius:5px !important;
   white-space:nowrap !important;
+}
+</style>
+
+
+<style id="v60-project-action-sizing">
+/* v60: 遺構コピー・削除を色表示ボタンと同等の通常サイズにする */
+#projectDetail > .project-manage{
+  display:flex !important;
+  gap:6px !important;
+  flex-wrap:wrap !important;
+  margin:6px 0 10px !important;
+}
+#projectDetail > .project-manage > button.btn{
+  flex:0 0 auto !important;
+  min-width:0 !important;
+  width:auto !important;
+  min-height:0 !important;
+  padding:10px 15px !important;
+  font-size:inherit !important;
 }
 </style>
 
@@ -561,9 +580,10 @@ function nextOnly(){openNextLayerOrInherit(state.layer+1)}
 
 function showInheritDialog(nextLayer){
  const old=JSON.parse(JSON.stringify(state));const labels=[["color","色調"],["soil","主体土"],["viscosity","粘性"],["firmness","締り"],["mixes","混入物"],["note","備考"]];
- const wrap=document.createElement("div");wrap.className="modal-backdrop";wrap.innerHTML=`<div class="modal-card"><h2>次の層へ引き継ぐ項目</h2><p class="hint">必要な項目だけ選択してください。何も選ばなければ新規入力になります。</p><div class="inherit-grid">${labels.map(([k,l])=>`<label class="inherit-item"><input type="checkbox" value="${k}"><span>${l}</span></label>`).join("")}</div><div class="actions"><button class="btn" id="inheritNone">引き継がず次へ</button><button class="btn primary" id="inheritGo">選択して次へ</button></div></div>`;document.body.appendChild(wrap);
+ const wrap=document.createElement("div");wrap.className="modal-backdrop";wrap.innerHTML=`<div class="modal-card"><h2>次の層へ引き継ぐ項目</h2><p class="hint">必要な項目だけ選択してください。何も選ばなければ新規入力になります。</p><div class="inherit-grid">${labels.map(([k,l])=>`<label class="inherit-item"><input type="checkbox" value="${k}"><span>${l}</span></label>`).join("")}</div><div class="actions"><button class="btn" id="inheritBack">← 元の層に戻る</button><button class="btn" id="inheritNone">引き継がず次へ</button><button class="btn primary" id="inheritGo">選択して次へ</button></div></div>`;document.body.appendChild(wrap);
  const go=use=>{const ns={layer:nextLayer,color:null,soil:null,mixes:[],viscosity:null,firmness:null,note:""};if(use)wrap.querySelectorAll("input:checked").forEach(c=>ns[c.value]=JSON.parse(JSON.stringify(old[c.value])));state=ns;active=0;wrap.remove();renderTabs();renderPanel();generate();updateCurrent();saveDraft()};
- wrap.querySelector("#inheritNone").onclick=()=>go(false);wrap.querySelector("#inheritGo").onclick=()=>go(true);
+ const back=()=>{state=old;wrap.remove();renderTabs();renderPanel();generate();updateCurrent();saveDraft();window.scrollTo({top:0,behavior:"smooth"})};
+ wrap.querySelector("#inheritBack").onclick=back;wrap.querySelector("#inheritNone").onclick=()=>go(false);wrap.querySelector("#inheritGo").onclick=()=>go(true);
 }
 
 function loadLayer(x){
