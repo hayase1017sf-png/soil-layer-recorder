@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v60 PWA</title>
+<title>土層記載文作成アプリ v61 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -224,6 +224,15 @@ textarea{min-height:120px;resize:vertical}
 }
 </style>
 
+
+<style id="v61-hold-next-style">
+#mobileSaveNext{position:relative;overflow:hidden;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+#mobileSaveNext span,#mobileSaveNext small{position:relative;z-index:2;display:block}
+#mobileSaveNext small{font-size:10px;line-height:1.1;margin-top:2px;font-weight:700;opacity:.8}
+#mobileSaveNext .hold-progress{position:absolute;z-index:1;left:0;bottom:0;width:0;height:100%;background:rgba(255,255,255,.22);pointer-events:none}
+#mobileSaveNext.holding .hold-progress{width:100%;transition:width .7s linear}
+#mobileSaveNext.hold-done{transform:scale(.98)}
+</style>
 </head>
 <body>
 <div class="app">
@@ -291,7 +300,7 @@ textarea{min-height:120px;resize:vertical}
 <div id="mobileBottomBar" class="mobile-bottom-bar">
   <button class="btn secondary" type="button" onclick="saveAndFinish()">保存して終了</button>
   <button class="btn" type="button" onclick="finishWithoutSave()">保存せず終了</button>
-  <button class="btn primary" type="button" onclick="saveAndNext()">保存して次の層へ →</button>
+  <button id="mobileSaveNext" class="btn primary hold-next" type="button" aria-label="長押しで保存して次の層へ"><span>保存して次の層へ →</span><small>長押し</small><i class="hold-progress" aria-hidden="true"></i></button>
 </div>
 
 <script>
@@ -746,6 +755,24 @@ document.getElementById("saveFinish").onclick=saveAndFinish;
 document.getElementById("finishWithoutSave").onclick=finishWithoutSave;
 document.getElementById("saveNext").onclick=saveAndNext;
 document.getElementById("nextOnly").onclick=nextOnly;
+
+// v61: スマホの「保存して次の層へ」は0.7秒長押しで実行
+(function setupHoldSaveNext(){
+ const btn=document.getElementById("mobileSaveNext");
+ if(!btn)return;
+ let timer=null,done=false;
+ const cancel=()=>{if(timer){clearTimeout(timer);timer=null}btn.classList.remove("holding","hold-done")};
+ const start=e=>{
+  if(e.type==="pointerdown"&&e.button!==undefined&&e.button!==0)return;
+  done=false;cancel();btn.classList.add("holding");
+  timer=setTimeout(()=>{timer=null;done=true;btn.classList.remove("holding");btn.classList.add("hold-done");if(navigator.vibrate)navigator.vibrate(35);saveAndNext();setTimeout(()=>btn.classList.remove("hold-done"),180)},700);
+ };
+ btn.addEventListener("pointerdown",start);
+ ["pointerup","pointercancel","pointerleave"].forEach(ev=>btn.addEventListener(ev,()=>{if(!done)cancel()}));
+ btn.addEventListener("click",e=>{e.preventDefault();e.stopPropagation()});
+ btn.addEventListener("contextmenu",e=>e.preventDefault());
+})();
+
 
 loadCustomItems();
 loadHistory();normalizeHistory();saveHistory();
