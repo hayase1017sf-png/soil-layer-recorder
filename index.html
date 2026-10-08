@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v62 PWA</title>
+<title>土層記載文作成アプリ v63 記憶域安全＋色補正版14 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -262,12 +262,14 @@ textarea{min-height:120px;resize:vertical}
     <input id="siteName" type="text" placeholder="例：墨田区亀沢４丁目">
     <div class="project-title" style="margin-top:16px">調査区（任意）</div>
     <input id="sectionName" type="text" placeholder="例：調査区１　※空欄の場合は「未区分」">
+    <div class="project-title" style="margin-top:16px">検出面（任意）</div>
+    <input id="surfaceName" type="text" placeholder="例：1面、第2検出面　※空欄の場合は「未区分」">
     <div class="project-title" style="margin-top:16px">遺構</div>
     <input id="projectTitle" type="text" placeholder="例：1号住居、002号土坑、1号溝">
   </div>
 
 <div class="v13-top-status">
-  <div class="v13-top-label">現在の現場 ／ 調査区 ／ 遺構</div>
+  <div class="v13-top-label">現在の現場 ／ 調査区 ／ 検出面 ／ 遺構</div>
   <div id="v13TopTitle" class="v13-top-title">調査区・壁面</div>
   <div class="v15-layers-label">作成済みの層</div>
   <div id="v15Layers" class="v15-layers">まだ作成されていません。</div>
@@ -301,14 +303,15 @@ textarea{min-height:120px;resize:vertical}
   <div id="savedScreen" class="app-screen">
   <div class="card">
     <h2>保存データ</h2>
-    <div class="hint">現場名 → 調査区 → 遺構 → 各層の順に開きます。調査区が未入力のデータは「未区分」に入ります。</div>
-    <input id="savedSearch" class="saved-search" type="search" placeholder="現場名・調査区・遺構名を検索" oninput="renderSaved()">
+    <div class="hint">現場名 → 調査区 → 検出面 → 遺構 → 各層の順に開きます。調査区・検出面が未入力のデータは「未区分」に入ります。</div>
+    <input id="savedSearch" class="saved-search" type="search" placeholder="現場名・調査区・検出面・遺構名を検索" oninput="renderSaved()">
     <select id="savedSort" class="saved-search" style="margin-top:0" onchange="renderSaved()"><option value="recent">最近更新した順</option><option value="title">名前順</option></select>
-    <div class="project-manage"><button class="btn" onclick="exportBackup()">全データをバックアップ</button><button class="btn" onclick="document.getElementById('backupFile').click()">バックアップを復元</button><input id="backupFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div>
+    <div class="project-manage"><button class="btn" onclick="exportBackup()">全データをバックアップ</button><button class="btn" onclick="document.getElementById('backupFile').click()">バックアップを復元</button><button class="btn" onclick="restoreLatestAutoSnapshot()">直前の自動バックアップに戻す</button><input id="backupFile" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)"></div><div class="hint" style="margin-top:6px">削除・名称変更・遺構移動・バックアップ復元・既存層の上書き前に、端末内へ自動バックアップを最大5世代保存します。</div>
     <div id="siteList" class="site-list"></div>
     <div id="siteDetail" style="display:none"><div id="savedSiteBreadcrumb" class="saved-breadcrumb"></div><div class="saved-navline"><button class="btn" onclick="backToSiteList()">← 現場一覧へ</button></div><h3 id="savedSiteHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSite(selectedSavedSite)">この現場をTXT保存</button><button class="btn" onclick="printPdfForSite(selectedSavedSite)">この現場をPDF保存</button><button class="btn" onclick="renameSite(selectedSavedSite)">現場名を編集</button><button class="btn" onclick="deleteSite(selectedSavedSite)">この現場を削除</button></div><div id="sectionList" class="site-list"></div></div>
-    <div id="sectionDetail" style="display:none"><div id="savedSectionBreadcrumb" class="saved-breadcrumb"></div><div class="saved-navline"><button class="btn" onclick="backToSectionList()">← 調査区一覧へ</button></div><h3 id="savedSectionHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSection(selectedSavedSite,selectedSavedSection)">この調査区をTXT保存</button><button class="btn" onclick="printPdfForSection(selectedSavedSite,selectedSavedSection)">この調査区をPDF保存</button><button class="btn" onclick="renameSection(selectedSavedSite,selectedSavedSection)">調査区名を編集</button><button class="btn" onclick="deleteSection(selectedSavedSite,selectedSavedSection)">この調査区を削除</button></div><div id="projectList" class="project-list"></div></div>
-    <div id="projectDetail" style="display:none"><div id="savedProjectBreadcrumb" class="saved-breadcrumb"></div><button class="btn" onclick="backToProjectList()">← 遺構一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div class="project-manage"><button class="btn" onclick="copyProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">この遺構をコピー</button><button class="btn" onclick="renameProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">遺構名を編集</button><button class="btn" onclick="deleteProject(selectedSavedSite,selectedSavedSection,selectedSavedProject)">この遺構を削除</button></div><div class="saved-color-tools"><button class="btn" onclick="setAllSavedColors(true)">色を一括表示</button><button class="btn" onclick="setAllSavedColors(false)">色を一括非表示</button></div><div id="savedProjects" style="margin-top:12px"></div></div>
+    <div id="sectionDetail" style="display:none"><div id="savedSectionBreadcrumb" class="saved-breadcrumb"></div><div class="saved-navline"><button class="btn" onclick="backToSectionList()">← 調査区一覧へ</button></div><h3 id="savedSectionHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="downloadTxtForSection(selectedSavedSite,selectedSavedSection)">この調査区をTXT保存</button><button class="btn" onclick="printPdfForSection(selectedSavedSite,selectedSavedSection)">この調査区をPDF保存</button><button class="btn" onclick="renameSection(selectedSavedSite,selectedSavedSection)">調査区名を編集</button><button class="btn" onclick="deleteSection(selectedSavedSite,selectedSavedSection)">この調査区を削除</button></div><div id="surfaceList" class="project-list"></div></div>
+    <div id="surfaceDetail" style="display:none"><div id="savedSurfaceBreadcrumb" class="saved-breadcrumb"></div><div class="saved-navline"><button class="btn" onclick="backToSurfaceList()">← 検出面一覧へ</button></div><h3 id="savedSurfaceHeading" class="site-heading"></h3><div class="project-manage"><button class="btn" onclick="renameSurface(selectedSavedSite,selectedSavedSection,selectedSavedSurface)">検出面名を編集</button><button class="btn" onclick="deleteSurface(selectedSavedSite,selectedSavedSection,selectedSavedSurface)">この検出面を削除</button></div><div id="projectList" class="project-list"></div></div>
+    <div id="projectDetail" style="display:none"><div id="savedProjectBreadcrumb" class="saved-breadcrumb"></div><button class="btn" onclick="backToProjectList()">← 遺構一覧へ</button><h3 id="savedProjectHeading" style="margin:16px 0 4px"></h3><div class="project-manage"><button class="btn" onclick="copyProject(selectedSavedSite,selectedSavedSection,selectedSavedSurface,selectedSavedProject)">この遺構をコピー</button><button class="btn" onclick="moveProject(selectedSavedSite,selectedSavedSection,selectedSavedSurface,selectedSavedProject)">この遺構を移動</button><button class="btn" onclick="renameProject(selectedSavedSite,selectedSavedSection,selectedSavedSurface,selectedSavedProject)">遺構名を編集</button><button class="btn" onclick="deleteProject(selectedSavedSite,selectedSavedSection,selectedSavedSurface,selectedSavedProject)">この遺構を削除</button></div><div class="saved-color-tools"><button class="btn" onclick="setAllSavedColors(true)">色を一括表示</button><button class="btn" onclick="setAllSavedColors(false)">色を一括非表示</button></div><div id="savedProjects" style="margin-top:12px"></div></div>
   </div>
   </div>
 </div>
@@ -336,15 +339,54 @@ function showScreen(name){
 const STORAGE_KEY="soilLayerHistories";
 const DRAFT_KEY="soilLayerDraft_v32";
 const CUSTOM_ITEMS_KEY="soilLayerCustomItems_v1";
-let customSoils=[],customMixTypes=[];
+const AUTO_SNAPSHOT_KEY="soilLayerAutoSnapshots_v1";
+const AUTO_SNAPSHOT_MAX=5;
+const BACKUP_FORMAT_VERSION=4;
+function safeLocalSet(k,v,label){try{localStorage.setItem(k,v);return true}catch(e){alert((label||"データ")+"を端末に保存できませんでした。保存容量不足の可能性があります。\nJSONバックアップを作成してから不要なブラウザデータを整理してください。");return false}}
+function currentCustomItems(){return {soils:[...customSoils],mixes:[...customMixTypes],viscosities:[...customViscosities],firmnesses:[...customFirmnesses]}}
+function getAutoSnapshots(){try{const x=JSON.parse(localStorage.getItem(AUTO_SNAPSHOT_KEY)||"[]");return Array.isArray(x)?x:[]}catch(e){return []}}
+function setAutoSnapshots(x){try{localStorage.setItem(AUTO_SNAPSHOT_KEY,JSON.stringify(x.slice(0,AUTO_SNAPSHOT_MAX)));return true}catch(e){return false}}
+function createAutoSnapshot(reason){
+ try{
+  const draft=JSON.parse(localStorage.getItem(DRAFT_KEY)||"null");
+  const snap={createdAt:new Date().toISOString(),reason:reason||"変更前",history:JSON.parse(JSON.stringify(history||{})),customItems:currentCustomItems(),draft:draft};
+  const list=getAutoSnapshots();
+  const sig=JSON.stringify({history:snap.history,customItems:snap.customItems,draft:snap.draft});
+  if(list.length){const prev=JSON.stringify({history:list[0].history,customItems:list[0].customItems,draft:list[0].draft});if(sig===prev)return false;}
+  list.unshift(snap);setAutoSnapshots(list);return true;
+ }catch(e){return false}
+}
+function applySnapshotData(snap){
+ if(!snap||!snap.history||typeof snap.history!=="object")return false;
+ history=JSON.parse(JSON.stringify(snap.history));normalizeHistory();
+ if(snap.customItems&&typeof snap.customItems==="object"){
+  safeLocalSet(CUSTOM_ITEMS_KEY,JSON.stringify(snap.customItems),"任意項目");loadCustomItems();
+ }
+ if(Object.prototype.hasOwnProperty.call(snap,"draft")){
+  if(snap.draft)safeLocalSet(DRAFT_KEY,JSON.stringify(snap.draft),"下書き");else localStorage.removeItem(DRAFT_KEY);
+ }
+ saveHistory();selectedSavedProject="";selectedSavedSurface="";selectedSavedSection="";selectedSavedSite="";renderSaved();updateCurrent();
+ document.getElementById("projectDetail").style.display="none";document.getElementById("surfaceDetail").style.display="none";document.getElementById("sectionDetail").style.display="none";document.getElementById("siteDetail").style.display="none";document.getElementById("siteList").style.display="";
+ return true;
+}
+function restoreLatestAutoSnapshot(){
+ const list=getAutoSnapshots();if(!list.length){alert("復元できる自動バックアップはまだありません。");return;}
+ const snap=list[0],d=new Date(snap.createdAt),when=Number.isNaN(d.getTime())?snap.createdAt:d.toLocaleString("ja-JP");
+ if(!confirm("直前の自動バックアップへ戻しますか？\n\n日時："+when+"\n内容："+(snap.reason||"変更前")+"\n\n現在の状態も復元前バックアップとして保存します。"))return;
+ createAutoSnapshot("自動バックアップ復元前");
+ if(applySnapshotData(snap))alert("直前の自動バックアップへ戻しました。");
+}
+let customSoils=[],customMixTypes=[],customViscosities=[],customFirmnesses=[];
 function loadCustomItems(){
  try{
   const x=JSON.parse(localStorage.getItem(CUSTOM_ITEMS_KEY)||"{}");
   customSoils=Array.isArray(x.soils)?x.soils:[];
   customMixTypes=Array.isArray(x.mixes)?x.mixes:[];
- }catch(e){customSoils=[];customMixTypes=[]}
+  customViscosities=Array.isArray(x.viscosities)?x.viscosities:[];
+  customFirmnesses=Array.isArray(x.firmnesses)?x.firmnesses:[];
+ }catch(e){customSoils=[];customMixTypes=[];customViscosities=[];customFirmnesses=[]}
 }
-function saveCustomItems(){localStorage.setItem(CUSTOM_ITEMS_KEY,JSON.stringify({soils:customSoils,mixes:customMixTypes}))}
+function saveCustomItems(){safeLocalSet(CUSTOM_ITEMS_KEY,JSON.stringify(currentCustomItems()),"任意項目")}
 function addCustomSoil(){
  const el=document.getElementById("customSoilInput"),v=(el?.value||"").trim().replace(/層$/,"");
  if(!v)return;
@@ -370,7 +412,7 @@ function deleteCustomMixType(i){
  customMixTypes.splice(i,1);saveCustomItems();renderPanel();saveDraft();
 }
 const tabs=["層位","色調","主体土","粘性","締り","混入物","備考"];
-const colors=[["7.5R 7/1","明赤灰","#bdaca9","7.5R"],["7.5R 6/1","赤灰","#a2928f","7.5R"],["7.5R 6/2","灰赤","#ad8e89","7.5R"],["7.5R 5/1","赤灰","#877875","7.5R"],["7.5R 5/2","灰赤","#91746f","7.5R"],["7.5R 5/3","にぶい赤褐","#9b716a","7.5R"],["7.5R 4/1","暗赤灰","#6c5e5c","7.5R"],["7.5R 4/2","灰赤","#765b56","7.5R"],["7.5R 4/3","にぶい赤褐","#7f5851","7.5R"],["7.5R 4/4","にぶい赤","#87544c","7.5R"],["7.5R 4/6","赤","#964b41","7.5R"],["7.5R 4/8","赤","#a54137","7.5R"],["7.5R 3/1","暗赤灰","#524643","7.5R"],["7.5R 3/2","暗赤褐","#5b433f","7.5R"],["7.5R 3/3","暗赤褐","#633f3a","7.5R"],["7.5R 3/4","暗赤","#6a3c35","7.5R"],["7.5R 3/6","暗赤","#78332b","7.5R"],["7.5R 2/1","赤黒","#3a2f2d","7.5R"],["7.5R 2/2","極暗赤褐","#422c29","7.5R"],["7.5R 2/3","極暗赤褐","#492924","7.5R"],["7.5R 1.7/1","赤黒","#342927","7.5R"],["10R 7/1","明赤灰","#bcaca7","10R"],["10R 6/1","暗赤灰","#a1928d","10R"],["10R 6/2","灰赤","#ac8f86","10R"],["10R 6/3","にぶい赤橙","#b68b7e","10R"],["10R 6/4","にぶい赤橙","#bf8877","10R"],["10R 6/6","赤橙","#d18068","10R"],["10R 6/8","赤橙","#e17858","10R"],["10R 5/1","赤灰","#867874","10R"],["10R 5/2","灰赤","#90756d","10R"],["10R 5/3","赤褐","#997266","10R"],["10R 5/4","赤褐","#a26f5f","10R"],["10R 5/6","赤","#b26750","10R"],["10R 5/8","赤","#c05f42","10R"],["10R 4/1","暗赤灰","#6b5f5b","10R"],["10R 4/2","灰赤","#755c54","10R"],["10R 4/3","赤褐","#7d594d","10R"],["10R 4/4","赤褐","#855547","10R"],["10R 4/6","赤","#934e3a","10R"],["10R 4/8","赤","#a0462c","10R"],["10R 3/1","暗赤灰","#524642","10R"],["10R 3/2","暗赤褐","#5a433c","10R"],["10R 3/3","暗赤褐","#614036","10R"],["10R 3/4","暗赤","#683d30","10R"],["10R 3/6","暗赤","#753624","10R"],["10R 2/1","赤黒","#3a2f2c","10R"],["10R 2/2","極暗赤褐","#412d26","10R"],["10R 2/3","極暗赤褐","#472a21","10R"],["10R 1.7/1","赤黒","#332926","10R"],["2.5YR 7/1","明赤灰","#baada5","2.5YR"],["2.5YR 7/2","明赤灰","#c4ab9a","2.5YR"],["2.5YR 7/3","淡赤橙","#cda890","2.5YR"],["2.5YR 7/4","淡赤橙","#d5a685","2.5YR"],["2.5YR 7/6","橙","#e4a170","2.5YR"],["2.5YR 7/8","橙","#f19b5a","2.5YR"],["2.5YR 6/1","赤灰","#9f938b","2.5YR"],["2.5YR 6/2","灰赤","#a89181","2.5YR"],["2.5YR 6/3","にぶい橙","#b08e77","2.5YR"],["2.5YR 6/4","にぶい橙","#b88c6e","2.5YR"],["2.5YR 6/6","橙","#c68759","2.5YR"],["2.5YR 6/8","橙","#d28244","2.5YR"],["2.5YR 5/1","赤灰","#847972","2.5YR"],["2.5YR 5/2","灰赤","#8d7768","2.5YR"],["2.5YR 5/3","にぶい赤褐","#94755f","2.5YR"],["2.5YR 5/4","にぶい赤褐","#9b7256","2.5YR"],["2.5YR 5/6","明赤褐","#a76e43","2.5YR"],["2.5YR 5/8","明赤褐","#b2692e","2.5YR"],["2.5YR 4/1","赤灰","#6a5f59","2.5YR"],["2.5YR 4/2","灰赤","#715d50","2.5YR"],["2.5YR 4/3","にぶい赤褐","#785b47","2.5YR"],["2.5YR 4/4","にぶい赤褐","#7e593f","2.5YR"],["2.5YR 4/6","赤褐","#89552d","2.5YR"],["2.5YR 4/8","赤褐","#935018","2.5YR"],["2.5YR 3/1","暗赤灰","#504741","2.5YR"],["2.5YR 3/2","暗赤褐","#574539","2.5YR"],["2.5YR 3/3","暗赤褐","#5d4331","2.5YR"],["2.5YR 3/4","暗赤褐","#624129","2.5YR"],["2.5YR 3/6","暗赤褐","#6c3d17","2.5YR"],["2.5YR 2/1","赤黒","#38302a","2.5YR"],["2.5YR 2/2","極暗赤褐","#3e2e23","2.5YR"],["2.5YR 2/3","極暗赤褐","#432c1c","2.5YR"],["2.5YR 2/4","極暗赤褐","#482b14","2.5YR"],["2.5YR 1.7/1","赤黒","#322a24","2.5YR"],["5YR 8/1","灰白","#d4c8be","5YR"],["5YR 8/2","灰白","#ddc6b2","5YR"],["5YR 8/3","淡橙","#e5c4a6","5YR"],["5YR 8/4","淡橙","#edc39a","5YR"],["5YR 7/1","明褐灰","#b9aea4","5YR"],["5YR 7/2","明褐灰","#c1ac99","5YR"],["5YR 7/3","にぶい橙","#c9aa8d","5YR"],["5YR 7/4","にぶい橙","#d0a882","5YR"],["5YR 7/6","橙","#dca56b","5YR"],["5YR 7/8","橙","#e7a152","5YR"],["5YR 6/1","褐灰","#9e938a","5YR"],["5YR 6/2","灰褐","#a59280","5YR"],["5YR 6/3","にぶい橙","#ac9075","5YR"],["5YR 6/4","にぶい橙","#b38e6a","5YR"],["5YR 6/6","橙","#be8b54","5YR"],["5YR 6/8","橙","#c8873d","5YR"],["5YR 5/1","褐灰","#837971","5YR"],["5YR 5/2","灰褐","#8a7867","5YR"],["5YR 5/3","にぶい赤褐","#91765d","5YR"],["5YR 5/4","にぶい赤褐","#967553","5YR"],["5YR 5/6","明赤褐","#a0713e","5YR"],["5YR 5/8","明赤褐","#a96e26","5YR"],["5YR 4/1","褐灰","#696058","5YR"],["5YR 4/2","灰褐","#6f5e4f","5YR"],["5YR 4/3","にぶい赤褐","#755d45","5YR"],["5YR 4/4","にぶい赤褐","#7a5b3c","5YR"],["5YR 4/6","赤褐","#835828","5YR"],["5YR 4/8","赤褐","#8a550e","5YR"],["5YR 3/1","黒褐","#4f4740","5YR"],["5YR 3/2","暗赤褐","#554637","5YR"],["5YR 3/3","暗赤褐","#5a442f","5YR"],["5YR 3/4","暗赤褐","#5e4326","5YR"],["5YR 3/6","暗赤褐","#664012","5YR"],["5YR 2/1","黒褐","#37302a","5YR"],["5YR 2/2","黒褐","#3c2f22","5YR"],["5YR 2/3","極暗赤褐","#412e1a","5YR"],["5YR 2/4","極暗赤褐","#442d12","5YR"],["5YR 1.7/1","黒","#312a24","5YR"],["7.5YR 8/1","灰白","#d2c9be","7.5YR"],["7.5YR 8/2","灰白","#d9c8b1","7.5YR"],["7.5YR 8/3","浅黄橙","#e0c6a4","7.5YR"],["7.5YR 8/4","浅黄橙","#e6c598","7.5YR"],["7.5YR 8/6","浅黄橙","#f1c37e","7.5YR"],["7.5YR 8/8","黄橙","#fac163","7.5YR"],["7.5YR 7/1","明褐灰","#b7aea4","7.5YR"],["7.5YR 7/2","明褐灰","#bead98","7.5YR"],["7.5YR 7/3","にぶい橙","#c4ac8c","7.5YR"],["7.5YR 7/4","にぶい橙","#caab80","7.5YR"],["7.5YR 7/6","橙","#d3a967","7.5YR"],["7.5YR 7/8","黄橙","#dba64d","7.5YR"],["7.5YR 6/1","褐灰","#9c948a","7.5YR"],["7.5YR 6/2","灰褐","#a2937f","7.5YR"],["7.5YR 6/3","にぶい褐","#a89273","7.5YR"],["7.5YR 6/4","にぶい橙","#ad9168","7.5YR"],["7.5YR 6/6","橙","#b68f51","7.5YR"],["7.5YR 6/8","橙","#bd8d37","7.5YR"],["7.5YR 5/1","褐灰","#827a70","7.5YR"],["7.5YR 5/2","灰褐","#877966","7.5YR"],["7.5YR 5/3","にぶい褐","#8c785b","7.5YR"],["7.5YR 5/4","にぶい褐","#917751","7.5YR"],["7.5YR 5/6","明褐","#99753a","7.5YR"],["7.5YR 5/8","明褐","#9f7320","7.5YR"],["7.5YR 4/1","褐灰","#676057","7.5YR"],["7.5YR 4/2","灰褐","#6d5f4e","7.5YR"],["7.5YR 4/3","褐","#715e44","7.5YR"],["7.5YR 4/4","褐","#755d3a","7.5YR"],["7.5YR 4/6","褐","#7c5c24","7.5YR"],["7.5YR 3/1","黒褐","#4e4840","7.5YR"],["7.5YR 3/2","黒褐","#534737","7.5YR"],["7.5YR 3/3","暗褐","#57462d","7.5YR"],["7.5YR 3/4","暗褐","#5a4524","7.5YR"],["7.5YR 2/1","黒","#363129","7.5YR"],["7.5YR 2/2","黒褐","#3a3021","7.5YR"],["7.5YR 2/3","極暗褐","#3e2f19","7.5YR"],["7.5YR 1.7/1","黒","#302a23","7.5YR"],["10YR 8/1","灰白","#d0c9bd","10YR"],["10YR 8/2","灰白","#d6c9b0","10YR"],["10YR 8/3","浅黄橙","#dbc8a4","10YR"],["10YR 8/4","浅黄橙","#dfc897","10YR"],["10YR 8/6","黄橙","#e6c77c","10YR"],["10YR 8/8","黄橙","#ecc660","10YR"],["10YR 7/1","灰白","#b5afa3","10YR"],["10YR 7/2","にぶい黄橙","#baae97","10YR"],["10YR 7/3","にぶい黄橙","#bfae8b","10YR"],["10YR 7/4","にぶい黄橙","#c3ad7f","10YR"],["10YR 7/6","明黄褐","#c9ac65","10YR"],["10YR 7/8","黄橙","#cfac4a","10YR"],["10YR 6/1","褐灰","#9a948a","10YR"],["10YR 6/2","灰黄褐","#9f947e","10YR"],["10YR 6/3","にぶい黄橙","#a39373","10YR"],["10YR 6/4","にぶい黄橙","#a79367","10YR"],["10YR 6/6","明黄褐","#ad924f","10YR"],["10YR 6/8","明黄褐","#b19234","10YR"],["10YR 5/1","褐灰","#807a70","10YR"],["10YR 5/2","灰黄褐","#847a66","10YR"],["10YR 5/3","にぶい黄褐","#88795b","10YR"],["10YR 5/4","にぶい黄褐","#8b7950","10YR"],["10YR 5/6","黄褐","#907839","10YR"],["10YR 5/8","黄褐","#94781c","10YR"],["10YR 4/1","褐灰","#666157","10YR"],["10YR 4/2","灰黄褐","#6a604d","10YR"],["10YR 4/3","にぶい黄褐","#6d6043","10YR"],["10YR 4/4","褐","#706039","10YR"],["10YR 4/6","褐","#745f22","10YR"],["10YR 3/1","黒褐","#4d483f","10YR"],["10YR 3/2","黒褐","#504836","10YR"],["10YR 3/3","暗褐","#53472d","10YR"],["10YR 3/4","暗褐","#554723","10YR"],["10YR 2/1","黒","#353129","10YR"],["10YR 2/2","黒褐","#383121","10YR"],["10YR 2/3","黒褐","#3a3018","10YR"],["10YR 1.7/1","黒","#2f2b23","10YR"],["2.5Y 8/1","灰白","#d0cabd","2.5Y"],["2.5Y 8/2","灰白","#d4c9b0","2.5Y"],["2.5Y 8/3","淡黄","#d9c9a4","2.5Y"],["2.5Y 8/4","淡黄","#dcc997","2.5Y"],["2.5Y 8/6","黄","#e3c87c","2.5Y"],["2.5Y 8/8","黄","#e7c860","2.5Y"],["2.5Y 7/1","灰白","#b4afa3","2.5Y"],["2.5Y 7/2","灰黄","#b9af97","2.5Y"],["2.5Y 7/3","浅黄","#bdae8b","2.5Y"],["2.5Y 7/4","浅黄","#c0ae7f","2.5Y"],["2.5Y 7/6","明黄褐","#c6ae65","2.5Y"],["2.5Y 7/8","黄","#caad4a","2.5Y"],["2.5Y 6/1","黄灰","#9a958a","2.5Y"],["2.5Y 6/2","灰黄","#9e947e","2.5Y"],["2.5Y 6/3","にぶい黄","#a29473","2.5Y"],["2.5Y 6/4","にぶい黄","#a59467","2.5Y"],["2.5Y 6/6","明黄褐","#aa934f","2.5Y"],["2.5Y 6/8","明黄褐","#ad9333","2.5Y"],["2.5Y 5/1","黄灰","#7f7b70","2.5Y"],["2.5Y 5/2","暗灰黄","#837a66","2.5Y"],["2.5Y 5/3","黄褐","#867a5b","2.5Y"],["2.5Y 5/4","黄褐","#897a50","2.5Y"],["2.5Y 5/6","黄褐","#8d7938","2.5Y"],["2.5Y 4/1","黄灰","#656157","2.5Y"],["2.5Y 4/2","暗灰黄","#69614d","2.5Y"],["2.5Y 4/3","オリーブ褐","#6c6043","2.5Y"],["2.5Y 4/4","オリーブ褐","#6e6039","2.5Y"],["2.5Y 4/6","オリーブ褐","#716022","2.5Y"],["2.5Y 3/1","黒褐","#4c483f","2.5Y"],["2.5Y 3/2","黒褐","#4f4836","2.5Y"],["2.5Y 3/3","暗オリーブ褐","#51482d","2.5Y"],["2.5Y 2/1","黒","#353129","2.5Y"],["5Y 8/1","灰白","#cdcabd","5Y"],["5Y 8/2","灰白","#d0cbb1","5Y"],["5Y 8/3","淡黄","#d2cba4","5Y"],["5Y 8/4","淡黄","#d4cb97","5Y"],["5Y 8/6","黄","#d7cc7d","5Y"],["5Y 8/8","黄","#d9cd61","5Y"],["5Y 7/1","灰白","#b2b0a3","5Y"],["5Y 7/2","灰白","#b5b097","5Y"],["5Y 7/3","浅黄","#b7b08b","5Y"],["5Y 7/4","浅黄","#b9b07f","5Y"],["5Y 7/6","黄","#bbb166","5Y"],["5Y 7/8","黄","#bcb24b","5Y"],["5Y 6/1","灰","#98958a","5Y"],["5Y 6/2","灰オリーブ","#9a957e","5Y"],["5Y 6/3","オリーブ黄","#9c9673","5Y"],["5Y 6/4","オリーブ黄","#9e9667","5Y"],["5Y 6/6","オリーブ","#a0974f","5Y"],["5Y 6/8","オリーブ","#a09834","5Y"],["5Y 5/1","灰","#7e7b70","5Y"],["5Y 5/2","灰オリーブ","#807b66","5Y"],["5Y 5/3","灰オリーブ","#817c5b","5Y"],["5Y 5/4","オリーブ","#837c50","5Y"],["5Y 5/6","オリーブ","#847d39","5Y"],["5Y 4/1","灰","#646157","5Y"],["5Y 4/2","灰オリーブ","#66624e","5Y"],["5Y 4/3","暗オリーブ","#676244","5Y"],["5Y 4/4","暗オリーブ","#686239","5Y"],["5Y 3/1","オリーブ黒","#4b493f","5Y"],["5Y 3/2","オリーブ黒","#4c4936","5Y"],["5Y 2/1","黒","#333229","5Y"],["5Y 2/2","オリーブ黒","#353221","5Y"],["7.5Y 8/1","灰白","#cbcbbe","7.5Y"],["7.5Y 8/2","灰白","#ccccb2","7.5Y"],["7.5Y 8/3","淡黄","#cccda5","7.5Y"],["7.5Y 7/1","灰白","#b0b0a4","7.5Y"],["7.5Y 7/2","灰白","#b1b198","7.5Y"],["7.5Y 7/3","浅黄","#b1b28d","7.5Y"],["7.5Y 6/1","灰","#96968a","7.5Y"],["7.5Y 6/2","灰オリーブ","#96977f","7.5Y"],["7.5Y 6/3","オリーブ黄","#979774","7.5Y"],["7.5Y 5/1","灰","#7c7c71","7.5Y"],["7.5Y 5/2","灰オリーブ","#7c7c67","7.5Y"],["7.5Y 5/3","灰オリーブ","#7c7d5c","7.5Y"],["7.5Y 4/1","灰","#626258","7.5Y"],["7.5Y 4/2","灰オリーブ","#62634e","7.5Y"],["7.5Y 4/3","暗オリーブ","#626345","7.5Y"],["7.5Y 3/1","オリーブ黒","#494940","7.5Y"],["7.5Y 3/2","オリーブ黒","#494a37","7.5Y"],["7.5Y 2/1","黒","#32322a","7.5Y"],["7.5Y 2/2","オリーブ黒","#323322","7.5Y"],["10Y 8/1","灰白","#c9ccbf","10Y"],["10Y 8/2","灰白","#c7cdb3","10Y"],["10Y 7/1","灰白","#aeb1a5","10Y"],["10Y 7/2","灰白","#adb29a","10Y"],["10Y 6/1","灰","#94968b","10Y"],["10Y 6/2","オリーブ灰","#929881","10Y"],["10Y 5/1","灰","#7a7c71","10Y"],["10Y 5/2","オリーブ灰","#787d68","10Y"],["10Y 4/1","灰","#606258","10Y"],["10Y 4/2","オリーブ灰","#5f634f","10Y"],["10Y 3/1","オリーブ黒","#474940","10Y"],["10Y 3/2","オリーブ黒","#464a38","10Y"],["10Y 2/1","黒","#31322a","10Y"],["N 8/","灰白","#cccccc","N"],["N 7/","灰白","#b2b2b2","N"],["N 6/","灰","#999999","N"],["N 5/","灰","#808080","N"],["N 4/","灰","#666666","N"],["N 3/","暗灰","#4c4c4c","N"],["N 2/","黒","#333333","N"],["N 1.5/","黒","#262626","N"],["2.5GY 8/1","灰白","#c8ccbf","2.5GY"],["2.5GY 7/1","明オリーブ灰","#adb1a5","2.5GY"],["2.5GY 6/1","オリーブ灰","#93968b","2.5GY"],["2.5GY 5/1","オリーブ灰","#797c72","2.5GY"],["2.5GY 4/1","暗オリーブ灰","#606259","2.5GY"],["2.5GY 3/1","暗オリーブ灰","#474a41","2.5GY"],["2.5GY 2/1","黒","#30332a","2.5GY"],["5GY 8/1","灰白","#c6ccc0","5GY"],["5GY 7/1","明オリーブ灰","#abb1a6","5GY"],["5GY 6/1","オリーブ灰","#91978c","5GY"],["5GY 5/1","オリーブ灰","#777d73","5GY"],["5GY 4/1","暗オリーブ灰","#5e6359","5GY"],["5GY 3/1","暗オリーブ灰","#454a41","5GY"],["5GY 2/1","オリーブ黒","#2f332b","5GY"],["7.5GY 8/1","明緑灰","#c4cdc1","7.5GY"],["7.5GY 7/1","明緑灰","#a9b2a7","7.5GY"],["7.5GY 6/1","緑灰","#8f978d","7.5GY"],["7.5GY 5/1","緑灰","#757d74","7.5GY"],["7.5GY 4/1","暗緑灰","#5c635b","7.5GY"],["7.5GY 3/1","暗緑灰","#444a42","7.5GY"],["7.5GY 2/1","緑黒","#2d332c","7.5GY"],["10GY 8/1","明緑灰","#c2cdc3","10GY"],["10GY 7/1","明緑灰","#a7b2a9","10GY"],["10GY 6/1","緑灰","#8d988f","10GY"],["10GY 5/1","緑灰","#747d75","10GY"],["10GY 4/1","暗緑灰","#5b645c","10GY"],["10GY 3/1","暗緑灰","#424b43","10GY"],["10GY 2/1","緑黒","#2c332d","10GY"],["5G 7/1","明緑灰","#a5b3ab","5G"],["5G 6/1","緑灰","#8b9891","5G"],["5G 5/1","緑灰","#727e77","5G"],["5G 4/1","暗緑灰","#59645e","5G"],["5G 3/1","暗緑灰","#404b45","5G"],["5G 2/1","緑黒","#2a342e","5G"],["5G 1.7/1","緑黒","#242d28","5G"],["10G 7/1","明緑灰","#a2b3af","10G"],["10G 6/1","緑灰","#899894","10G"],["10G 5/1","緑灰","#6f7e7a","10G"],["10G 4/1","暗緑灰","#566461","10G"],["10G 3/1","暗緑灰","#3e4b48","10G"],["10G 2/1","緑黒","#283431","10G"],["10G 1.7/1","緑黒","#222d2b","10G"],["5BG 7/1","明青灰","#a1b3b2","5BG"],["5BG 6/1","青灰","#879998","5BG"],["5BG 5/1","青灰","#6e7e7d","5BG"],["5BG 4/1","暗青灰","#556464","5BG"],["5BG 3/1","暗青灰","#3d4b4b","5BG"],["5BG 2/1","青黒","#273433","5BG"],["5BG 1.7/1","青黒","#212d2d","5BG"],["10BG 7/1","明青灰","#a1b3b6","10BG"],["10BG 6/1","青灰","#87989b","10BG"],["10BG 5/1","青灰","#6e7e81","10BG"],["10BG 4/1","暗青灰","#556466","10BG"],["10BG 3/1","暗青灰","#3d4b4d","10BG"],["10BG 2/1","青黒","#273436","10BG"],["10BG 1.7/1","青黒","#212d2f","10BG"],["5B 7/1","明青灰","#a2b2b8","5B"],["5B 6/1","青灰","#88989e","5B"],["5B 5/1","青灰","#6f7d83","5B"],["5B 4/1","暗青灰","#566369","5B"],["5B 3/1","暗青灰","#3e4b4f","5B"],["5B 2/1","青黒","#283338","5B"],["5B 1.7/1","青黒","#212d31","5B"],["5PB 7/1","明青灰","#a9b0bb","5PB"],["5PB 6/1","青灰","#8f95a0","5PB"],["5PB 5/1","青灰","#757b86","5PB"],["5PB 4/1","暗青灰","#5c626b","5PB"],["5PB 3/1","暗青灰","#444952","5PB"],["5PB 2/1","青黒","#2d323a","5PB"],["5PB 1.7/1","青黒","#272b33","5PB"],["5P 7/1","明紫灰","#b3adb9","5P"],["5P 6/1","紫灰","#99939e","5P"],["5P 5/1","紫灰","#7e7983","5P"],["5P 4/1","暗紫灰","#645f69","5P"],["5P 3/1","暗紫灰","#4b474f","5P"],["5P 2/1","紫黒","#343038","5P"],["5P 1.7/1","紫黒","#2e2a31","5P"],["5RP 7/1","明紫灰","#baacb3","5RP"],["5RP 6/1","紫灰","#9f9198","5RP"],["5RP 5/1","紫灰","#84787e","5RP"],["5RP 4/1","暗紫灰","#6a5e64","5RP"],["5RP 3/1","暗紫灰","#50464b","5RP"],["5RP 2/1","紫黒","#392f34","5RP"],["5RP 1.7/1","紫黒","#32282d","5RP"],["5R 7/1","明赤灰","#bdacaa","5R"],["5R 6/1","赤灰","#a29190","5R"],["5R 5/1","赤灰","#877777","5R"],["5R 4/1","暗赤灰","#6c5e5d","5R"],["5R 3/1","暗赤灰","#524545","5R"],["5R 2/1","赤黒","#3a2f2e","5R"],["5R 1.7/1","赤黒","#342828","5R"]];
+const colors=[["7.5R 7/1", "明赤灰", "#dacfcf", "7.5R"],["7.5R 6/1", "赤灰", "#c1b8b6", "7.5R"],["7.5R 6/2", "灰赤", "#c6b5b4", "7.5R"],["7.5R 5/1", "赤灰", "#a19896", "7.5R"],["7.5R 5/2", "灰赤", "#a69594", "7.5R"],["7.5R 5/3", "にぶい赤褐", "#ad9490", "7.5R"],["7.5R 4/1", "暗赤灰", "#796867", "7.5R"],["7.5R 4/2", "灰赤", "#826661", "7.5R"],["7.5R 4/3", "にぶい赤褐", "#89635d", "7.5R"],["7.5R 4/4", "にぶい赤", "#905e59", "7.5R"],["7.5R 4/6", "赤", "#a94d44", "7.5R"],["7.5R 4/8", "赤", "#b94238", "7.5R"],["7.5R 3/1", "暗赤灰", "#625450", "7.5R"],["7.5R 3/2", "暗赤褐", "#694f4d", "7.5R"],["7.5R 3/3", "暗赤褐", "#714c48", "7.5R"],["7.5R 3/4", "暗赤", "#784843", "7.5R"],["7.5R 3/6", "暗赤", "#8f3730", "7.5R"],["7.5R 2/1", "赤黒", "#4b3f3d", "7.5R"],["7.5R 2/2", "極暗赤褐", "#533b38", "7.5R"],["7.5R 2/3", "極暗赤褐", "#5b3632", "7.5R"],["7.5R 1.7/1", "赤黒", "#463937", "7.5R"],["10R 7/1", "明赤灰", "#dacecd", "10R"],["10R 6/1", "暗赤灰", "#c4b5b1", "10R"],["10R 6/2", "灰赤", "#c8b3b2", "10R"],["10R 6/3", "にぶい赤橙", "#cbb1ae", "10R"],["10R 6/4", "にぶい赤橙", "#d0b0ab", "10R"],["10R 6/6", "赤橙", "#e19c96", "10R"],["10R 6/8", "赤橙", "#f0a19a", "10R"],["10R 5/1", "赤灰", "#a89d9a", "10R"],["10R 5/2", "灰赤", "#ad9a98", "10R"],["10R 5/3", "赤褐", "#b29894", "10R"],["10R 5/4", "赤褐", "#b69791", "10R"],["10R 5/6", "赤", "#ce847a", "10R"],["10R 5/8", "赤", "#df7569", "10R"],["10R 4/1", "暗赤灰", "#796965", "10R"],["10R 4/2", "灰赤", "#82655e", "10R"],["10R 4/3", "赤褐", "#8a6057", "10R"],["10R 4/4", "赤褐", "#935b51", "10R"],["10R 4/6", "赤", "#ae4a36", "10R"],["10R 4/8", "赤", "#c03e23", "10R"],["10R 3/1", "暗赤灰", "#63534e", "10R"],["10R 3/2", "暗赤褐", "#6b4d48", "10R"],["10R 3/3", "暗赤褐", "#724a41", "10R"],["10R 3/4", "暗赤", "#79463b", "10R"],["10R 3/6", "暗赤", "#963420", "10R"],["10R 2/1", "赤黒", "#4a3f3d", "10R"],["10R 2/2", "極暗赤褐", "#503b37", "10R"],["10R 2/3", "極暗赤褐", "#573a32", "10R"],["10R 1.7/1", "赤黒", "#443a37", "10R"],["2.5YR 7/1", "明赤灰", "#ded4d0", "2.5YR"],["2.5YR 7/2", "明赤灰", "#dccdc9", "2.5YR"],["2.5YR 7/3", "淡赤橙", "#e0cdc5", "2.5YR"],["2.5YR 7/4", "淡赤橙", "#e3cbc1", "2.5YR"],["2.5YR 7/6", "橙", "#f9cfbf", "2.5YR"],["2.5YR 7/8", "橙", "#ffcab8", "2.5YR"],["2.5YR 6/1", "赤灰", "#c2b2aa", "2.5YR"],["2.5YR 6/2", "灰赤", "#c6aca6", "2.5YR"],["2.5YR 6/3", "にぶい橙", "#c9aba1", "2.5YR"],["2.5YR 6/4", "にぶい橙", "#cfa99a", "2.5YR"],["2.5YR 6/6", "橙", "#e09f86", "2.5YR"],["2.5YR 6/8", "橙", "#e89979", "2.5YR"],["2.5YR 5/1", "赤灰", "#a79c99", "2.5YR"],["2.5YR 5/2", "灰赤", "#ab9c94", "2.5YR"],["2.5YR 5/3", "にぶい赤褐", "#af9a8e", "2.5YR"],["2.5YR 5/4", "にぶい赤褐", "#b49789", "2.5YR"],["2.5YR 5/6", "明赤褐", "#cd886a", "2.5YR"],["2.5YR 5/8", "明赤褐", "#db7d55", "2.5YR"],["2.5YR 4/1", "赤灰", "#786a63", "2.5YR"],["2.5YR 4/2", "灰赤", "#7f695a", "2.5YR"],["2.5YR 4/3", "にぶい赤褐", "#866651", "2.5YR"],["2.5YR 4/4", "にぶい赤褐", "#8c6449", "2.5YR"],["2.5YR 4/6", "赤褐", "#a75d28", "2.5YR"],["2.5YR 4/8", "赤褐", "#b7570d", "2.5YR"],["2.5YR 3/1", "暗赤灰", "#61544d", "2.5YR"],["2.5YR 3/2", "暗赤褐", "#695245", "2.5YR"],["2.5YR 3/3", "暗赤褐", "#6f513c", "2.5YR"],["2.5YR 3/4", "暗赤褐", "#744f34", "2.5YR"],["2.5YR 3/6", "暗赤褐", "#904711", "2.5YR"],["2.5YR 2/1", "赤黒", "#483f3b", "2.5YR"],["2.5YR 2/2", "極暗赤褐", "#4e3e34", "2.5YR"],["2.5YR 2/3", "極暗赤褐", "#543d2d", "2.5YR"],["2.5YR 2/4", "極暗赤褐", "#593b25", "2.5YR"],["2.5YR 1.7/1", "赤黒", "#433935", "2.5YR"],["5YR 8/1", "灰白", "#eae6e3", "5YR"],["5YR 8/2", "灰白", "#eee1db", "5YR"],["5YR 8/3", "淡橙", "#f2dfd5", "5YR"],["5YR 8/4", "淡橙", "#f3e0d3", "5YR"],["5YR 7/1", "明褐灰", "#d6cdc5", "5YR"],["5YR 7/2", "明褐灰", "#d4c6bb", "5YR"],["5YR 7/3", "にぶい橙", "#d5c4b8", "5YR"],["5YR 7/4", "にぶい橙", "#dbc2b1", "5YR"],["5YR 7/6", "橙", "#edc8ad", "5YR"],["5YR 7/8", "橙", "#efc6a5", "5YR"],["5YR 6/1", "褐灰", "#c0b5ab", "5YR"],["5YR 6/2", "灰褐", "#c3b4a6", "5YR"],["5YR 6/3", "にぶい橙", "#c4b2a3", "5YR"],["5YR 6/4", "にぶい橙", "#c8b19c", "5YR"],["5YR 6/6", "橙", "#d6a57e", "5YR"],["5YR 6/8", "橙", "#de9f70", "5YR"],["5YR 5/1", "褐灰", "#a59f99", "5YR"],["5YR 5/2", "灰褐", "#a99d94", "5YR"],["5YR 5/3", "にぶい赤褐", "#ac9c8e", "5YR"],["5YR 5/4", "にぶい赤褐", "#ae9b88", "5YR"],["5YR 5/6", "明赤褐", "#c08c66", "5YR"],["5YR 5/8", "明赤褐", "#cd874f", "5YR"],["5YR 4/1", "褐灰", "#766b63", "5YR"],["5YR 4/2", "灰褐", "#7b685b", "5YR"],["5YR 4/3", "にぶい赤褐", "#806752", "5YR"],["5YR 4/4", "にぶい赤褐", "#85654a", "5YR"],["5YR 4/6", "赤褐", "#9a612b", "5YR"],["5YR 4/8", "赤褐", "#a75d0c", "5YR"],["5YR 3/1", "黒褐", "#72655d", "5YR"],["5YR 3/2", "暗赤褐", "#796453", "5YR"],["5YR 3/3", "暗赤褐", "#7f614a", "5YR"],["5YR 3/4", "暗赤褐", "#856140", "5YR"],["5YR 3/6", "暗赤褐", "#a45e18", "5YR"],["5YR 2/1", "黒褐", "#5c514b", "5YR"],["5YR 2/2", "黒褐", "#625144", "5YR"],["5YR 2/3", "極暗赤褐", "#67503c", "5YR"],["5YR 2/4", "極暗赤褐", "#6d4f32", "5YR"],["5YR 1.7/1", "黒", "#584d47", "5YR"],["7.5YR 8/1", "灰白", "#ebe5e0", "7.5YR"],["7.5YR 8/2", "灰白", "#ede3d7", "7.5YR"],["7.5YR 8/3", "浅黄橙", "#ede2d7", "7.5YR"],["7.5YR 8/4", "浅黄橙", "#ece2d6", "7.5YR"],["7.5YR 8/6", "浅黄橙", "#fee5c9", "7.5YR"],["7.5YR 8/8", "黄橙", "#ffe2c4", "7.5YR"],["7.5YR 7/1", "明褐灰", "#d8cec5", "7.5YR"],["7.5YR 7/2", "明褐灰", "#d8cdc2", "7.5YR"],["7.5YR 7/3", "にぶい橙", "#d9ccbf", "7.5YR"],["7.5YR 7/4", "にぶい橙", "#ddcbb8", "7.5YR"],["7.5YR 7/6", "橙", "#f5d5b3", "7.5YR"],["7.5YR 7/8", "黄橙", "#f4d2ad", "7.5YR"],["7.5YR 6/1", "褐灰", "#c0b6aa", "7.5YR"],["7.5YR 6/2", "灰褐", "#c4b5a4", "7.5YR"],["7.5YR 6/3", "にぶい褐", "#c4b29f", "7.5YR"],["7.5YR 6/4", "にぶい橙", "#c9b198", "7.5YR"],["7.5YR 6/6", "橙", "#d5ae84", "7.5YR"],["7.5YR 6/8", "橙", "#dcaa71", "7.5YR"],["7.5YR 5/1", "褐灰", "#a79f96", "7.5YR"],["7.5YR 5/2", "灰褐", "#a89d92", "7.5YR"],["7.5YR 5/3", "にぶい褐", "#ab9c8a", "7.5YR"],["7.5YR 5/4", "にぶい褐", "#af9a82", "7.5YR"],["7.5YR 5/6", "明褐", "#bf9767", "7.5YR"],["7.5YR 5/8", "明褐", "#d09648", "7.5YR"],["7.5YR 4/1", "褐灰", "#756b61", "7.5YR"],["7.5YR 4/2", "灰褐", "#7b6a58", "7.5YR"],["7.5YR 4/3", "褐", "#80694e", "7.5YR"],["7.5YR 4/4", "褐", "#856743", "7.5YR"],["7.5YR 4/6", "褐", "#9b661f", "7.5YR"],["7.5YR 3/1", "黒褐", "#5f564c", "7.5YR"],["7.5YR 3/2", "黒褐", "#655543", "7.5YR"],["7.5YR 3/3", "暗褐", "#6a5439", "7.5YR"],["7.5YR 3/4", "暗褐", "#6f522e", "7.5YR"],["7.5YR 2/1", "黒", "#46413a", "7.5YR"],["7.5YR 2/2", "黒褐", "#4a4033", "7.5YR"],["7.5YR 2/3", "極暗褐", "#4f3f2a", "7.5YR"],["7.5YR 1.7/1", "黒", "#413a34", "7.5YR"],["10YR 8/1", "灰白", "#ede3d9", "10YR"],["10YR 8/2", "灰白", "#eae0d5", "10YR"],["10YR 8/3", "浅黄橙", "#eae0d4", "10YR"],["10YR 8/4", "浅黄橙", "#ebdfd1", "10YR"],["10YR 8/6", "黄橙", "#f9e4c6", "10YR"],["10YR 8/8", "黄橙", "#f7e2c3", "10YR"],["10YR 7/1", "灰白", "#d0c6bb", "10YR"],["10YR 7/2", "にぶい黄橙", "#cec6b9", "10YR"],["10YR 7/3", "にぶい黄橙", "#d0c5b5", "10YR"],["10YR 7/4", "にぶい黄橙", "#d2c3b0", "10YR"],["10YR 7/6", "明黄褐", "#e6cdb0", "10YR"],["10YR 7/8", "黄橙", "#ebcca6", "10YR"],["10YR 6/1", "褐灰", "#beb4ab", "10YR"],["10YR 6/2", "灰黄褐", "#beb4a6", "10YR"],["10YR 6/3", "にぶい黄橙", "#c0b4a0", "10YR"],["10YR 6/4", "にぶい黄橙", "#c1b29b", "10YR"],["10YR 6/6", "明黄褐", "#cab188", "10YR"],["10YR 6/8", "明黄褐", "#d3af73", "10YR"],["10YR 5/1", "褐灰", "#a49f98", "10YR"],["10YR 5/2", "灰黄褐", "#a69f92", "10YR"],["10YR 5/3", "にぶい黄褐", "#a79c8b", "10YR"],["10YR 5/4", "にぶい黄褐", "#a99a83", "10YR"],["10YR 5/6", "黄褐", "#b79a69", "10YR"],["10YR 5/8", "黄褐", "#c79a47", "10YR"],["10YR 4/1", "褐灰", "#736d62", "10YR"],["10YR 4/2", "灰黄褐", "#766b59", "10YR"],["10YR 4/3", "にぶい黄褐", "#796850", "10YR"],["10YR 4/4", "褐", "#7b6847", "10YR"],["10YR 4/6", "褐", "#8c6825", "10YR"],["10YR 3/1", "黒褐", "#5d564c", "10YR"],["10YR 3/2", "黒褐", "#605745", "10YR"],["10YR 3/3", "暗褐", "#63543b", "10YR"],["10YR 3/4", "暗褐", "#665231", "10YR"],["10YR 2/1", "黒", "#45423a", "10YR"],["10YR 2/2", "黒褐", "#484133", "10YR"],["10YR 2/3", "黒褐", "#4a3e2b", "10YR"],["10YR 1.7/1", "黒", "#403c34", "10YR"],["2.5Y 8/1", "灰白", "#e7e0da", "2.5Y"],["2.5Y 8/2", "灰白", "#e2dccf", "2.5Y"],["2.5Y 8/3", "淡黄", "#e2dcce", "2.5Y"],["2.5Y 8/4", "淡黄", "#e2dacb", "2.5Y"],["2.5Y 8/6", "黄", "#f7daab", "2.5Y"],["2.5Y 8/8", "黄", "#fcdba0", "2.5Y"],["2.5Y 7/1", "灰白", "#ccc9bf", "2.5Y"],["2.5Y 7/2", "灰黄", "#c8c0b2", "2.5Y"],["2.5Y 7/3", "浅黄", "#ccbfab", "2.5Y"],["2.5Y 7/4", "浅黄", "#ccbfa7", "2.5Y"],["2.5Y 7/6", "明黄褐", "#d8c4a0", "2.5Y"],["2.5Y 7/8", "黄", "#dcc494", "2.5Y"],["2.5Y 6/1", "黄灰", "#b3ab9b", "2.5Y"],["2.5Y 6/2", "灰黄", "#b5aa95", "2.5Y"],["2.5Y 6/3", "にぶい黄", "#b9a98d", "2.5Y"],["2.5Y 6/4", "にぶい黄", "#b9aa88", "2.5Y"],["2.5Y 6/6", "明黄褐", "#c6aa72", "2.5Y"],["2.5Y 6/8", "明黄褐", "#d5ac56", "2.5Y"],["2.5Y 5/1", "黄灰", "#a4a097", "2.5Y"],["2.5Y 5/2", "暗灰黄", "#a69f92", "2.5Y"],["2.5Y 5/3", "黄褐", "#a79c8a", "2.5Y"],["2.5Y 5/4", "黄褐", "#a99b82", "2.5Y"],["2.5Y 5/6", "黄褐", "#b28936", "2.5Y"],["2.5Y 4/1", "黄灰", "#736d62", "2.5Y"],["2.5Y 4/2", "暗灰黄", "#766b59", "2.5Y"],["2.5Y 4/3", "オリーブ褐", "#786950", "2.5Y"],["2.5Y 4/4", "オリーブ褐", "#7a6846", "2.5Y"],["2.5Y 4/6", "オリーブ褐", "#8b6823", "2.5Y"],["2.5Y 3/1", "黒褐", "#5c564c", "2.5Y"],["2.5Y 3/2", "黒褐", "#605645", "2.5Y"],["2.5Y 3/3", "暗オリーブ褐", "#62533a", "2.5Y"],["2.5Y 2/1", "黒", "#44413c", "2.5Y"],["5Y 8/1", "灰白", "#e6e5db", "5Y"],["5Y 8/2", "灰白", "#e7e7d4", "5Y"],["5Y 8/3", "淡黄", "#e7e4d3", "5Y"],["5Y 8/4", "淡黄", "#e7e5d0", "5Y"],["5Y 8/6", "黄", "#f4efb0", "5Y"],["5Y 8/8", "黄", "#fff1a2", "5Y"],["5Y 7/1", "灰白", "#cccbb9", "5Y"],["5Y 7/2", "灰白", "#cbcab6", "5Y"],["5Y 7/3", "浅黄", "#cfcaaf", "5Y"],["5Y 7/4", "浅黄", "#cfcbac", "5Y"],["5Y 7/6", "黄", "#ded9aa", "5Y"],["5Y 7/8", "黄", "#e2db9f", "5Y"],["5Y 6/1", "灰", "#b2ae9a", "5Y"],["5Y 6/2", "灰オリーブ", "#b3b095", "5Y"],["5Y 6/3", "オリーブ黄", "#b4b08f", "5Y"],["5Y 6/4", "オリーブ黄", "#b6b188", "5Y"],["5Y 6/6", "オリーブ", "#c2bb71", "5Y"],["5Y 6/8", "オリーブ", "#d4c745", "5Y"],["5Y 5/1", "灰", "#a4a197", "5Y"],["5Y 5/2", "灰オリーブ", "#a4a190", "5Y"],["5Y 5/3", "灰オリーブ", "#a3a18a", "5Y"],["5Y 5/4", "オリーブ", "#a5a282", "5Y"],["5Y 5/6", "オリーブ", "#aaa13b", "5Y"],["5Y 4/1", "灰", "#716f65", "5Y"],["5Y 4/2", "灰オリーブ", "#73705d", "5Y"],["5Y 4/3", "暗オリーブ", "#736f54", "5Y"],["5Y 4/4", "暗オリーブ", "#736e4b", "5Y"],["5Y 3/1", "オリーブ黒", "#6a675c", "5Y"],["5Y 3/2", "オリーブ黒", "#6b6853", "5Y"],["5Y 2/1", "黒", "#555449", "5Y"],["5Y 2/2", "オリーブ黒", "#595740", "5Y"],["7.5Y 8/1", "灰白", "#f0f0e9", "7.5Y"],["7.5Y 8/2", "灰白", "#edede6", "7.5Y"],["7.5Y 8/3", "淡黄", "#ececdd", "7.5Y"],["7.5Y 7/1", "灰白", "#d3d1c6", "7.5Y"],["7.5Y 7/2", "灰白", "#d3d3c1", "7.5Y"],["7.5Y 7/3", "浅黄", "#d2d2be", "7.5Y"],["7.5Y 6/1", "灰", "#c2c2bb", "7.5Y"],["7.5Y 6/2", "灰オリーブ", "#c3c3b5", "7.5Y"],["7.5Y 6/3", "オリーブ黄", "#c4c3ae", "7.5Y"],["7.5Y 5/1", "灰", "#a2a297", "7.5Y"],["7.5Y 5/2", "灰オリーブ", "#a3a38f", "7.5Y"],["7.5Y 5/3", "灰オリーブ", "#a3a388", "7.5Y"],["7.5Y 4/1", "灰", "#707065", "7.5Y"],["7.5Y 4/2", "灰オリーブ", "#71725c", "7.5Y"],["7.5Y 4/3", "暗オリーブ", "#717253", "7.5Y"],["7.5Y 3/1", "オリーブ黒", "#67675c", "7.5Y"],["7.5Y 3/2", "オリーブ黒", "#6b6b52", "7.5Y"],["7.5Y 2/1", "黒", "#545449", "7.5Y"],["7.5Y 2/2", "オリーブ黒", "#58593f", "7.5Y"],["10Y 8/1", "灰白", "#e9e9e5", "10Y"],["10Y 8/2", "灰白", "#e4eadf", "10Y"],["10Y 7/1", "灰白", "#dcddd7", "10Y"],["10Y 7/2", "灰白", "#cdcec4", "10Y"],["10Y 6/1", "灰", "#c2c2bb", "10Y"],["10Y 6/2", "オリーブ灰", "#b4b8a8", "10Y"],["10Y 5/1", "灰", "#a0a099", "10Y"],["10Y 5/2", "オリーブ灰", "#969885", "10Y"],["10Y 4/1", "灰", "#6e7062", "10Y"],["10Y 4/2", "オリーブ灰", "#6f715a", "10Y"],["10Y 3/1", "オリーブ黒", "#58594e", "10Y"],["10Y 3/2", "オリーブ黒", "#585d44", "10Y"],["10Y 2/1", "黒", "#444439", "10Y"],["N 8/", "灰白", "#efefef", "N"],["N 7/", "灰白", "#dddddd", "N"],["N 6/", "灰", "#c4c4c4", "N"],["N 5/", "灰", "#a4a4a4", "N"],["N 4/", "灰", "#666666", "N"],["N 3/", "暗灰", "#5a5a5a", "N"],["N 2/", "黒", "#434343", "N"],["N 1.5/", "黒", "#373737", "N"],["2.5GY 8/1", "灰白", "#eeeeeb", "2.5GY"],["2.5GY 7/1", "明オリーブ灰", "#dbdcd8", "2.5GY"],["2.5GY 6/1", "オリーブ灰", "#c0c0bd", "2.5GY"],["2.5GY 5/1", "オリーブ灰", "#9ea09b", "2.5GY"],["2.5GY 4/1", "暗オリーブ灰", "#60615a", "2.5GY"],["2.5GY 3/1", "暗オリーブ灰", "#565751", "2.5GY"],["2.5GY 2/1", "黒", "#41433c", "2.5GY"],["5GY 8/1", "灰白", "#eeeeeb", "5GY"],["5GY 7/1", "明オリーブ灰", "#dadbd9", "5GY"],["5GY 6/1", "オリーブ灰", "#bfc1be", "5GY"],["5GY 5/1", "オリーブ灰", "#9da09b", "5GY"],["5GY 4/1", "暗オリーブ灰", "#5e625a", "5GY"],["5GY 3/1", "暗オリーブ灰", "#545950", "5GY"],["5GY 2/1", "オリーブ黒", "#40453a", "5GY"],["7.5GY 8/1", "明緑灰", "#ecefec", "7.5GY"],["7.5GY 7/1", "明緑灰", "#d9dcd9", "7.5GY"],["7.5GY 6/1", "緑灰", "#bec2bd", "7.5GY"],["7.5GY 5/1", "緑灰", "#9aa29a", "7.5GY"],["7.5GY 4/1", "暗緑灰", "#5b635b", "7.5GY"],["7.5GY 3/1", "暗緑灰", "#515851", "7.5GY"],["7.5GY 2/1", "緑黒", "#3d433d", "7.5GY"],["10GY 8/1", "明緑灰", "#ecefec", "10GY"],["10GY 7/1", "明緑灰", "#d9dcd9", "10GY"],["10GY 6/1", "緑灰", "#bec3be", "10GY"],["10GY 5/1", "緑灰", "#9aa29a", "10GY"],["10GY 4/1", "暗緑灰", "#5b645c", "10GY"],["10GY 3/1", "暗緑灰", "#525852", "10GY"],["10GY 2/1", "緑黒", "#3d433d", "10GY"],["5G 7/1", "明緑灰", "#d8e3dd", "5G"],["5G 6/1", "緑灰", "#bcc3bc", "5G"],["5G 5/1", "緑灰", "#9aa29a", "5G"],["5G 4/1", "暗緑灰", "#57665b", "5G"],["5G 3/1", "暗緑灰", "#4f5a51", "5G"],["5G 2/1", "緑黒", "#3a453c", "5G"],["5G 1.7/1", "緑黒", "#353f38", "5G"],["10G 7/1", "明緑灰", "#d8e3dd", "10G"],["10G 6/1", "緑灰", "#bbc3bf", "10G"],["10G 5/1", "緑灰", "#97a29d", "10G"],["10G 4/1", "暗緑灰", "#63746d", "10G"],["10G 3/1", "暗緑灰", "#4d5a55", "10G"],["10G 2/1", "緑黒", "#384640", "10G"],["10G 1.7/1", "緑黒", "#323f3b", "10G"],["5BG 7/1", "明青灰", "#d7e0e3", "5BG"],["5BG 6/1", "青灰", "#bbc2c2", "5BG"],["5BG 5/1", "青灰", "#96a0a2", "5BG"],["5BG 4/1", "暗青灰", "#627074", "5BG"],["5BG 3/1", "暗青灰", "#4c585a", "5BG"],["5BG 2/1", "青黒", "#384344", "5BG"],["5BG 1.7/1", "青黒", "#313d3f", "5BG"],["10BG 7/1", "明青灰", "#d8dee4", "10BG"],["10BG 6/1", "青灰", "#bcc1c3", "10BG"],["10BG 5/1", "青灰", "#97a1a4", "10BG"],["10BG 4/1", "暗青灰", "#627076", "10BG"],["10BG 3/1", "暗青灰", "#4b585c", "10BG"],["10BG 2/1", "青黒", "#384347", "10BG"],["10BG 1.7/1", "青黒", "#323d40", "10BG"],["5B 7/1", "明青灰", "#d9dfe4", "5B"],["5B 6/1", "青灰", "#bcc2c4", "5B"],["5B 5/1", "青灰", "#98a0a5", "5B"],["5B 4/1", "暗青灰", "#647078", "5B"],["5B 3/1", "暗青灰", "#4c585e", "5B"],["5B 2/1", "青黒", "#37434a", "5B"],["5B 1.7/1", "青黒", "#323d43", "5B"],["5PB 7/1", "明青灰", "#dadce6", "5PB"],["5PB 6/1", "青灰", "#bfbfc7", "5PB"],["5PB 5/1", "青灰", "#9d9ea7", "5PB"],["5PB 4/1", "暗青灰", "#696c7a", "5PB"],["5PB 3/1", "暗青灰", "#515362", "5PB"],["5PB 2/1", "青黒", "#3e404a", "5PB"],["5PB 1.7/1", "青黒", "#373a45", "5PB"],["5P 7/1", "明紫灰", "#e6dbe6", "5P"],["5P 6/1", "紫灰", "#c7c0c7", "5P"],["5P 5/1", "紫灰", "#a59ea6", "5P"],["5P 4/1", "暗紫灰", "#75687c", "5P"],["5P 3/1", "暗紫灰", "#5c535f", "5P"],["5P 2/1", "紫黒", "#473e4b", "5P"],["5P 1.7/1", "紫黒", "#403844", "5P"],["5RP 7/1", "明紫灰", "#e7dbe1", "5RP"],["5RP 6/1", "紫灰", "#c7bfc3", "5RP"],["5RP 5/1", "紫灰", "#a69ea3", "5RP"],["5RP 4/1", "暗紫灰", "#7b6973", "5RP"],["5RP 3/1", "暗紫灰", "#6f6269", "5RP"],["5RP 2/1", "紫黒", "#5c4f57", "5RP"],["5RP 1.7/1", "紫黒", "#574851", "5RP"],["5R 7/1", "明赤灰", "#e3dad8", "5R"],["5R 6/1", "赤灰", "#c7c1c0", "5R"],["5R 5/1", "赤灰", "#a69f9f", "5R"],["5R 4/1", "暗赤灰", "#6d5d5c", "5R"],["5R 3/1", "暗赤灰", "#635151", "5R"],["5R 2/1", "赤黒", "#4c3e3c", "5R"],["5R 1.7/1", "赤黒", "#473737", "5R"]];
 const colorHues=[...new Set(colors.map(c=>c[3]))];
 let selectedHue="10YR";
 let hueScrollLeft=0;
@@ -385,17 +427,19 @@ let history={};
 let selectedSavedProject="";
 let selectedSavedSite="";
 let selectedSavedSection="";
+let selectedSavedSurface="";
 
 function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
 function title(){return document.getElementById("projectTitle").value.trim()||"無題の遺構"}
 function section(){return document.getElementById("sectionName").value.trim()||"未区分"}
+function surface(){return document.getElementById("surfaceName").value.trim()||"未区分"}
 function site(){return document.getElementById("siteName").value.trim()||"未分類の現場"}
 function loadHistory(){try{history=JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}")}catch(e){history={}}}
-function saveHistory(){localStorage.setItem(STORAGE_KEY,JSON.stringify(history))}
+function saveHistory(){return safeLocalSet(STORAGE_KEY,JSON.stringify(history),"保存データ")}
 function saveDraft(){
  try{
-  const draft={siteName:document.getElementById("siteName").value,sectionName:document.getElementById("sectionName").value,projectTitle:document.getElementById("projectTitle").value,state:JSON.parse(JSON.stringify(state)),selectedHue,updatedAt:new Date().toISOString()};
-  localStorage.setItem(DRAFT_KEY,JSON.stringify(draft));
+  const draft={siteName:document.getElementById("siteName").value,sectionName:document.getElementById("sectionName").value,surfaceName:document.getElementById("surfaceName").value,projectTitle:document.getElementById("projectTitle").value,state:JSON.parse(JSON.stringify(state)),selectedHue,updatedAt:new Date().toISOString()};
+  safeLocalSet(DRAFT_KEY,JSON.stringify(draft),"下書き");
  }catch(e){}
 }
 function restoreDraft(){
@@ -405,21 +449,23 @@ function restoreDraft(){
   state=d.state;
   if(d.siteName)document.getElementById("siteName").value=d.siteName;
   if(d.sectionName)document.getElementById("sectionName").value=d.sectionName;
+  if(d.surfaceName)document.getElementById("surfaceName").value=d.surfaceName;
   if(d.projectTitle)document.getElementById("projectTitle").value=d.projectTitle;
   if(d.selectedHue)selectedHue=d.selectedHue;
   return true;
  }catch(e){return false}
 }
-function key(siteName,sec,t,l){return siteName+"|"+sec+"|"+t+"|"+l}
+function key(siteName,sec,surf,t,l){return siteName+"|"+sec+"|"+surf+"|"+t+"|"+l}
 
 function exportBackup(){
- const payload={format:"soil-layer-app-backup",version:2,exportedAt:new Date().toISOString(),history:history};
+ const draft=(()=>{try{return JSON.parse(localStorage.getItem(DRAFT_KEY)||"null")}catch(e){return null}})();
+ const payload={format:"soil-layer-app-backup",version:BACKUP_FORMAT_VERSION,backupFormatVersion:BACKUP_FORMAT_VERSION,exportedAt:new Date().toISOString(),history:history,customItems:currentCustomItems(),draft:draft};
  const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
  const a=document.createElement("a");
  a.href=URL.createObjectURL(blob);
  const d=new Date();
  const stamp=d.getFullYear()+String(d.getMonth()+1).padStart(2,"0")+String(d.getDate()).padStart(2,"0");
- a.download="土層記載アプリ_全データ_"+stamp+".json";
+ a.download="土層記載アプリ_完全バックアップ_"+stamp+".json";
  document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(a.href);
 }
 function importBackup(ev){
@@ -431,20 +477,52 @@ function importBackup(ev){
    const obj=JSON.parse(reader.result);
    if(!obj||obj.format!=="soil-layer-app-backup"||!obj.history||typeof obj.history!=="object")throw new Error("invalid");
    const count=Object.keys(obj.history).length;
-   if(!confirm("バックアップから "+count+" 件の層データを復元します。現在の保存データは置き換えられます。続けますか？")){input.value="";return;}
-   history=obj.history;normalizeHistory();selectedSavedProject="";selectedSavedSection="";selectedSavedSite="";saveHistory();renderSaved();updateCurrent();
-   document.getElementById("projectDetail").style.display="none";document.getElementById("sectionDetail").style.display="none";document.getElementById("siteDetail").style.display="none";document.getElementById("siteList").style.display="";
+   const ver=Number(obj.backupFormatVersion||obj.version||0);
+   const extra=ver>=4?"\n任意項目と下書きもバックアップ内容に含まれている場合は復元します。":"\n旧形式バックアップのため、層データのみ復元します。";
+   if(!confirm("バックアップから "+count+" 件の層データを復元します。現在の保存データは置き換えられます。"+extra+"\n\n復元前の現在データは自動バックアップに保存します。続けますか？")){input.value="";return;}
+   createAutoSnapshot("JSONバックアップ復元前");
+   history=obj.history;normalizeHistory();
+   if(ver>=4&&obj.customItems&&typeof obj.customItems==="object"){safeLocalSet(CUSTOM_ITEMS_KEY,JSON.stringify(obj.customItems),"任意項目");loadCustomItems();}
+   if(ver>=4&&Object.prototype.hasOwnProperty.call(obj,"draft")){if(obj.draft)safeLocalSet(DRAFT_KEY,JSON.stringify(obj.draft),"下書き");else localStorage.removeItem(DRAFT_KEY);}
+   selectedSavedProject="";selectedSavedSurface="";selectedSavedSection="";selectedSavedSite="";saveHistory();renderSaved();updateCurrent();
+   document.getElementById("projectDetail").style.display="none";document.getElementById("surfaceDetail").style.display="none";document.getElementById("sectionDetail").style.display="none";document.getElementById("siteDetail").style.display="none";document.getElementById("siteList").style.display="";
    alert("バックアップを復元しました。");
   }catch(e){alert("このファイルは土層記載アプリのバックアップとして読み込めません。");}
   input.value="";
  };
  reader.readAsText(file);
 }
-function key(siteName,sec,t,l){return siteName+"|"+sec+"|"+t+"|"+l}
+function key(siteName,sec,surf,t,l){return siteName+"|"+sec+"|"+surf+"|"+t+"|"+l}
 
 function renderTabs(){
  document.getElementById("tabs").innerHTML=tabs.map((t,i)=>
   `<button class="tab ${i===active?"active":""}" type="button" onclick="setTab(${i})">${i+1}. ${t}</button>`).join("");
+}
+function addCustomViscosity(){
+ const el=document.getElementById("customViscosityInput"),v=(el?.value||"").trim();
+ if(!v)return;
+ if(!levels.includes(v)&&!customViscosities.includes(v)){customViscosities.push(v);saveCustomItems()}
+ state.viscosity=v;renderPanel();updateOutput();saveDraft();
+}
+function deleteCustomViscosity(i){
+ const v=customViscosities[i];if(v==null)return;
+ if(!confirm("任意項目「"+v+"」を候補から削除しますか？"))return;
+ customViscosities.splice(i,1);saveCustomItems();
+ if(state.viscosity===v)state.viscosity=null;
+ renderPanel();updateOutput();saveDraft();
+}
+function addCustomFirmness(){
+ const el=document.getElementById("customFirmnessInput"),v=(el?.value||"").trim();
+ if(!v)return;
+ if(!levels.includes(v)&&!customFirmnesses.includes(v)){customFirmnesses.push(v);saveCustomItems()}
+ state.firmness=v;renderPanel();updateOutput();saveDraft();
+}
+function deleteCustomFirmness(i){
+ const v=customFirmnesses[i];if(v==null)return;
+ if(!confirm("任意項目「"+v+"」を候補から削除しますか？"))return;
+ customFirmnesses.splice(i,1);saveCustomItems();
+ if(state.firmness===v)state.firmness=null;
+ renderPanel();updateOutput();saveDraft();
 }
 function setTab(i){active=i;renderTabs();renderPanel();updateTopStatus()}
 
@@ -473,9 +551,17 @@ function renderPanel(){
   <p class="hint">追加した項目は保存され、生成文では語尾に「層」が付きます。</p></div>
   ${customSoils.length?`<div class="field"><label>保存した任意項目</label><div class="option-grid">${customSoils.map((x,i)=>`<span style="display:inline-flex;align-items:center;gap:4px"><button type="button" class="option ${state.soil===x?"selected":""}" onclick="chooseSoil(customSoils[${i}])">${esc(x)}</button><button type="button" class="btn" onclick="deleteCustomSoil(${i})">削除</button></span>`).join("")}</div></div>`:""}`;
  }else if(active===3){
-  p.innerHTML=`<h2>粘性</h2>${options(levels,state.viscosity,"chooseViscosity")}`;
+  p.innerHTML=`<h2>粘性</h2>${options([...levels,...customViscosities],state.viscosity,"chooseViscosity")}
+  <div class="field" style="margin-top:16px"><label>任意項目を追加</label>
+  <div style="display:flex;gap:8px"><input id="customViscosityInput" placeholder="例：非常に強い"><button type="button" class="btn" onclick="addCustomViscosity()">追加</button></div>
+  <p class="hint">追加した項目は保存され、次回以降も粘性の候補に表示されます。</p></div>
+  ${customViscosities.length?`<div class="field"><label>保存した任意項目</label><div class="option-grid">${customViscosities.map((x,i)=>`<span style="display:inline-flex;align-items:center;gap:4px"><button type="button" class="option ${state.viscosity===x?"selected":""}" onclick="chooseViscosity(customViscosities[${i}])">${esc(x)}</button><button type="button" class="btn" onclick="deleteCustomViscosity(${i})">削除</button></span>`).join("")}</div></div>`:""}`;
  }else if(active===4){
-  p.innerHTML=`<h2>締り</h2>${options(levels,state.firmness,"chooseFirmness")}`;
+  p.innerHTML=`<h2>締り</h2>${options([...levels,...customFirmnesses],state.firmness,"chooseFirmness")}
+  <div class="field" style="margin-top:16px"><label>任意項目を追加</label>
+  <div style="display:flex;gap:8px"><input id="customFirmnessInput" placeholder="例：非常に強い"><button type="button" class="btn" onclick="addCustomFirmness()">追加</button></div>
+  <p class="hint">追加した項目は保存され、次回以降もしまりの候補に表示されます。</p></div>
+  ${customFirmnesses.length?`<div class="field"><label>保存した任意項目</label><div class="option-grid">${customFirmnesses.map((x,i)=>`<span style="display:inline-flex;align-items:center;gap:4px"><button type="button" class="option ${state.firmness===x?"selected":""}" onclick="chooseFirmness(customFirmnesses[${i}])">${esc(x)}</button><button type="button" class="btn" onclick="deleteCustomFirmness(${i})">削除</button></span>`).join("")}</div></div>`:""}`;
  }else if(active===5){
   p.innerHTML=`<h2>混入物</h2><p class="hint">粒径は空欄でも構いません。単位はmm固定です。</p>
   ${state.mixes.map((m,i)=>`<div class="mix"><div class="mix-head"><b>混入物 ${i+1}</b><button type="button" class="btn" onclick="removeMix(${i})">削除</button></div>
@@ -525,7 +611,9 @@ function generate(){
   }else{
    if(state.viscosity){
     const viscosityText={"強い":"強く","やや強い":"やや強く","中位":"中位で","やや弱い":"やや弱く","弱い":"弱く"};
-    s+=` 粘性は${viscosityText[state.viscosity]||state.viscosity}`;
+    const rawViscosity=String(state.viscosity);
+    const connectedViscosity=viscosityText[rawViscosity]||(rawViscosity.endsWith("い")?rawViscosity.slice(0,-1)+"く":rawViscosity);
+    s+=` 粘性は${connectedViscosity}`;
    }
    if(state.firmness)s+=`${state.viscosity?"、":" "}しまりは${state.firmness}`;
    s+="。";
@@ -549,10 +637,10 @@ function generate(){
 }
 function updateOutput(){generate();saveDraft()}
 function updateCurrent(){
- const currentText=site()+" ／ "+section()+" ／ "+title()+" ／ 第"+state.layer+"層";
+ const currentText=site()+" ／ "+section()+" ／ "+surface()+" ／ "+title()+" ／ 第"+state.layer+"層";
  document.getElementById("currentName").textContent=currentText;
  const mc=document.getElementById("mobileCurrent");if(mc)mc.textContent=currentText;
- const saved=Object.values(history).filter(x=>x.siteName===site()&&x.sectionName===section()&&x.projectTitle===title()).sort((a,b)=>Number(a.layer)-Number(b.layer));
+ const saved=Object.values(history).filter(x=>x.siteName===site()&&x.sectionName===section()&&x.surfaceName===surface()&&x.projectTitle===title()).sort((a,b)=>Number(a.layer)-Number(b.layer));
  document.getElementById("sequence").textContent=saved.length
   ?"作成済み："+saved.map(x=>"第"+x.layer+"層").join("、")+"　｜　現在：第"+state.layer+"層"
   :"現在：第"+state.layer+"層　｜　次は第"+(state.layer+1)+"層です";
@@ -568,11 +656,13 @@ function saveLayer(){
  const t=title();
  const sn=site();
  const sec=section();
- history[key(sn,sec,t,state.layer)]={siteName:sn,sectionName:sec,projectTitle:t,layer:String(state.layer),text,data:JSON.parse(JSON.stringify(state)),savedAt:new Date().toLocaleString("ja-JP")};
+ const surf=surface();
+ const saveKey=key(sn,sec,surf,t,state.layer);if(history[saveKey])createAutoSnapshot("既存層の上書き前");
+ history[saveKey]={siteName:sn,sectionName:sec,surfaceName:surf,projectTitle:t,layer:String(state.layer),text,data:JSON.parse(JSON.stringify(state)),savedAt:new Date().toLocaleString("ja-JP")};
  saveHistory();selectedSavedSite=sn;selectedSavedProject=t;renderSaved();updateCurrent();
 }
-function findSavedLayer(layerNo,sn=site(),sec=section(),t=title()){
- return history[key(sn,sec,t,layerNo)]||null;
+function findSavedLayer(layerNo,sn=site(),sec=section(),surf=surface(),t=title()){
+ return history[key(sn,sec,surf,t,layerNo)]||null;
 }
 function openNextLayerOrInherit(nextLayer){
  const existing=findSavedLayer(nextLayer);
@@ -595,6 +685,7 @@ function finishWithoutSave(){
  if(!confirm("現在入力中の変更を保存せずに終了しますか？"))return;
  localStorage.removeItem(DRAFT_KEY);
  resetLayer(1);
+ localStorage.removeItem(DRAFT_KEY);
  showScreen("saved");
 }
 function saveAndNext(){
@@ -613,117 +704,69 @@ function showInheritDialog(nextLayer){
 }
 
 function loadLayer(x){
- document.getElementById("siteName").value=x.siteName||"未分類の現場";document.getElementById("sectionName").value=(x.sectionName&&x.sectionName!=="未区分")?x.sectionName:"";document.getElementById("projectTitle").value=x.projectTitle||"";
+ document.getElementById("siteName").value=x.siteName||"未分類の現場";document.getElementById("sectionName").value=(x.sectionName&&x.sectionName!=="未区分")?x.sectionName:"";document.getElementById("surfaceName").value=(x.surfaceName&&x.surfaceName!=="未区分")?x.surfaceName:"";document.getElementById("projectTitle").value=x.projectTitle||"";
  state=JSON.parse(JSON.stringify(x.data));
  active=0;renderTabs();renderPanel();generate();updateCurrent();showScreen("create");
 }
-function deleteLayer(sn,sec,t,l){
+function deleteLayer(sn,sec,surf,t,l){
  if(!confirm("第"+l+"層を削除しますか？"))return;
- delete history[key(sn,sec,t,l)];saveHistory();
- const remain=projectEntries(t,sn,sec);
- if(remain.length){
-  renderSaved();
- }else{
-  selectedSavedProject="";
-  hideSavedDetails();document.getElementById("sectionDetail").style.display="block";
-  renderSaved();
- }
+ createAutoSnapshot("層削除前");delete history[key(sn,sec,surf,t,l)];saveHistory();
+ const remain=projectEntries(t,sn,sec,surf);
+ if(remain.length){renderSaved();}else{selectedSavedProject="";hideSavedDetails();document.getElementById("surfaceDetail").style.display="block";renderSaved();}
  updateCurrent();
 }
-function deleteByFilter(test){
- Object.keys(history).forEach(k=>{if(test(history[k]))delete history[k]});
- saveHistory();
-}
-function deleteSite(sn){
- if(!confirm("現場「"+sn+"」と、その中のすべてのデータを削除しますか？"))return;
- deleteByFilter(x=>x.siteName===sn);
- selectedSavedSite=selectedSavedSection=selectedSavedProject="";
- hideSavedDetails();document.getElementById("siteList").style.display="";
- renderSaved();updateCurrent();
-}
-function deleteSection(sn,sec){
- if(!confirm("調査区「"+sec+"」と、その中のすべての遺構・層を削除しますか？"))return;
- deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec);
- selectedSavedSection=selectedSavedProject="";
- hideSavedDetails();document.getElementById("siteDetail").style.display="block";
- renderSaved();updateCurrent();
-}
-function deleteProject(sn,sec,t){
- if(!confirm("遺構「"+t+"」と、その中のすべての層を削除しますか？"))return;
- deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.projectTitle===t);
- selectedSavedProject="";
- hideSavedDetails();document.getElementById("sectionDetail").style.display="block";
- renderSaved();updateCurrent();
-}
-function rebuildHistoryWithRename(transform){
- const out={};
- for(const x0 of Object.values(history)){
-  const x=JSON.parse(JSON.stringify(x0));
-  transform(x);
-  const k=key(x.siteName,x.sectionName,x.projectTitle,x.layer);
-  if(out[k])return false;
-  out[k]=x;
- }
- history=out;saveHistory();return true;
-}
-function renameSite(sn){
- const dest=(prompt("新しい現場名を入力してください。",sn)||"").trim();
- if(!dest||dest===sn)return;
- if(Object.values(history).some(x=>x.siteName===dest)){alert("現場「"+dest+"」はすでに存在します。別の名前を指定してください。");return;}
- if(!confirm("現場名を「"+sn+"」から「"+dest+"」へ変更しますか？\n中の調査区・遺構・層もまとめて移動します。"))return;
- rebuildHistoryWithRename(x=>{if(x.siteName===sn)x.siteName=dest});
- if(document.getElementById("siteName").value.trim()===sn)document.getElementById("siteName").value=dest;
- selectedSavedSite=dest;renderSaved();selectSavedSite(dest);updateCurrent();saveDraft();
-}
+function deleteByFilter(test){createAutoSnapshot("まとめて削除前");Object.keys(history).forEach(k=>{if(test(history[k]))delete history[k]});saveHistory();}
+function deleteSite(sn){if(!confirm("現場「"+sn+"」と、その中のすべてのデータを削除しますか？"))return;deleteByFilter(x=>x.siteName===sn);selectedSavedSite=selectedSavedSection=selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("siteList").style.display="";renderSaved();updateCurrent();}
+function deleteSection(sn,sec){if(!confirm("調査区「"+sec+"」と、その中のすべての検出面・遺構・層を削除しますか？"))return;deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec);selectedSavedSection=selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved();updateCurrent();}
+function deleteSurface(sn,sec,surf){if(!confirm("検出面「"+surf+"」と、その中のすべての遺構・層を削除しますか？"))return;deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf);selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("sectionDetail").style.display="block";renderSaved();updateCurrent();}
+function deleteProject(sn,sec,surf,t){if(!confirm("遺構「"+t+"」と、その中のすべての層を削除しますか？"))return;deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf&&x.projectTitle===t);selectedSavedProject="";hideSavedDetails();document.getElementById("surfaceDetail").style.display="block";renderSaved();updateCurrent();}
+function rebuildHistoryWithRename(transform){createAutoSnapshot("名称変更・統合前");const out={};for(const x0 of Object.values(history)){const x=JSON.parse(JSON.stringify(x0));transform(x);const k=key(x.siteName,x.sectionName,x.surfaceName,x.projectTitle,x.layer);if(out[k])return false;out[k]=x;}history=out;saveHistory();return true;}
+function renameSite(sn){const dest=(prompt("新しい現場名を入力してください。",sn)||"").trim();if(!dest||dest===sn)return;if(Object.values(history).some(x=>x.siteName===dest)){alert("現場「"+dest+"」はすでに存在します。別の名前を指定してください。");return;}if(!confirm("現場名を「"+sn+"」から「"+dest+"」へ変更しますか？\n中の調査区・検出面・遺構・層もまとめて移動します。"))return;rebuildHistoryWithRename(x=>{if(x.siteName===sn)x.siteName=dest});if(document.getElementById("siteName").value.trim()===sn)document.getElementById("siteName").value=dest;selectedSavedSite=dest;renderSaved();selectSavedSite(dest);updateCurrent();saveDraft();}
 function renameSection(sn,sec){
- const dest=(prompt("新しい調査区名を入力してください。",sec)||"").trim();
- if(!dest||dest===sec)return;
- if(Object.values(history).some(x=>x.siteName===sn&&x.sectionName===dest)){alert("同じ現場に調査区「"+dest+"」がすでに存在します。別の名前を指定してください。");return;}
- if(!confirm("調査区名を「"+sec+"」から「"+dest+"」へ変更しますか？\n中の遺構・層もまとめて移動します。"))return;
- rebuildHistoryWithRename(x=>{if(x.siteName===sn&&x.sectionName===sec)x.sectionName=dest});
- if(site()===sn&&section()===sec)document.getElementById("sectionName").value=dest==="未区分"?"":dest;
- selectedSavedSection=dest;renderSaved();selectSavedSection(dest);updateCurrent();saveDraft();
+ const dest=(prompt("新しい調査区名を入力してください。",sec)||"").trim();if(!dest||dest===sec)return;
+ const destExists=Object.values(history).some(x=>x.siteName===sn&&x.sectionName===dest);
+ if(destExists){
+  const src=Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec);
+  const conflicts=[...new Set(src.filter(x=>Object.values(history).some(y=>y.siteName===sn&&y.sectionName===dest&&y.surfaceName===x.surfaceName&&y.projectTitle===x.projectTitle)).map(x=>(x.surfaceName||"未区分")+" / "+x.projectTitle))];
+  if(conflicts.length){alert("統合先に同名の遺構があるため統合できません。\n\n"+conflicts.slice(0,10).join("\n")+(conflicts.length>10?"\nほか "+(conflicts.length-10)+"件":"")+"\n\n先に該当する遺構名を変更または移動してください。");return;}
+  if(!confirm("調査区「"+dest+"」はすでに存在します。\n\n「"+sec+"」の中身を「"+dest+"」へ統合しますか？\n元の調査区「"+sec+"」は統合後になくなります。"))return;
+ }else if(!confirm("調査区名を「"+sec+"」から「"+dest+"」へ変更しますか？\n中の検出面・遺構・層もまとめて移動します。"))return;
+ const ok=rebuildHistoryWithRename(x=>{if(x.siteName===sn&&x.sectionName===sec)x.sectionName=dest});if(!ok){alert("保存先のデータと衝突したため、変更を中止しました。");return;}
+ if(site()===sn&&section()===sec)document.getElementById("sectionName").value=dest==="未区分"?"":dest;selectedSavedSection=dest;selectedSavedSurface="";selectedSavedProject="";renderSaved();selectSavedSection(dest);updateCurrent();saveDraft();
 }
-function renameProject(sn,sec,t){
- const dest=(prompt("新しい遺構名を入力してください。",t)||"").trim();
- if(!dest||dest===t)return;
- if(Object.values(history).some(x=>x.siteName===sn&&x.sectionName===sec&&x.projectTitle===dest)){alert("同じ現場・調査区に遺構「"+dest+"」がすでに存在します。別の名前を指定してください。");return;}
- if(!confirm("遺構名を「"+t+"」から「"+dest+"」へ変更しますか？\n中のすべての層もまとめて移動します。"))return;
- rebuildHistoryWithRename(x=>{if(x.siteName===sn&&x.sectionName===sec&&x.projectTitle===t)x.projectTitle=dest});
- if(site()===sn&&section()===sec&&title()===t)document.getElementById("projectTitle").value=dest;
- selectedSavedProject=dest;renderSaved();selectSavedProject(dest);updateCurrent();saveDraft();
+function renameSurface(sn,sec,surf){
+ const dest=(prompt("新しい検出面名を入力してください。",surf)||"").trim();if(!dest||dest===surf)return;
+ const destExists=Object.values(history).some(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===dest);
+ if(destExists){
+  const src=Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf);
+  const conflicts=[...new Set(src.filter(x=>Object.values(history).some(y=>y.siteName===sn&&y.sectionName===sec&&y.surfaceName===dest&&y.projectTitle===x.projectTitle)).map(x=>x.projectTitle))];
+  if(conflicts.length){alert("統合先に同名の遺構があるため統合できません。\n\n"+conflicts.slice(0,10).join("\n")+(conflicts.length>10?"\nほか "+(conflicts.length-10)+"件":"")+"\n\n先に該当する遺構名を変更または移動してください。");return;}
+  if(!confirm("検出面「"+dest+"」はすでに存在します。\n\n「"+surf+"」の中身を「"+dest+"」へ統合しますか？\n元の検出面「"+surf+"」は統合後になくなります。"))return;
+ }else if(!confirm("検出面名を「"+surf+"」から「"+dest+"」へ変更しますか？\n中の遺構・層もまとめて移動します。"))return;
+ const ok=rebuildHistoryWithRename(x=>{if(x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf)x.surfaceName=dest});if(!ok){alert("保存先のデータと衝突したため、変更を中止しました。");return;}
+ if(site()===sn&&section()===sec&&surface()===surf)document.getElementById("surfaceName").value=dest==="未区分"?"":dest;selectedSavedSurface=dest;selectedSavedProject="";renderSaved();selectSavedSurface(dest);updateCurrent();saveDraft();
 }
-
-function copyProject(sn,sec,t){
- const src=projectEntries(t,sn,sec);
- if(!src.length)return;
- const dest=(prompt("コピー先の遺構名を入力してください。\n例：P12","")||"").trim();
- if(!dest)return;
- if(dest===t){alert("コピー元と同じ遺構名は指定できません。");return;}
- const exists=Object.values(history).some(x=>x.siteName===sn&&x.sectionName===sec&&x.projectTitle===dest);
- if(exists){alert("同じ現場・調査区に「"+dest+"」がすでに存在します。別の遺構名を指定してください。");return;}
- src.forEach(x=>{
-  const y=JSON.parse(JSON.stringify(x));
-  y.projectTitle=dest;
-  y.savedAt=new Date().toLocaleString("ja-JP");
-  history[key(sn,sec,dest,y.layer)]=y;
- });
- saveHistory();
- selectedSavedProject=dest;
- renderSaved();
- selectSavedProject(dest);
+function renameProject(sn,sec,surf,t){const dest=(prompt("新しい遺構名を入力してください。",t)||"").trim();if(!dest||dest===t)return;if(Object.values(history).some(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf&&x.projectTitle===dest)){alert("同じ調査区・検出面に遺構「"+dest+"」がすでに存在します。別の名前を指定してください。");return;}if(!confirm("遺構名を「"+t+"」から「"+dest+"」へ変更しますか？\n中のすべての層もまとめて移動します。"))return;rebuildHistoryWithRename(x=>{if(x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf&&x.projectTitle===t)x.projectTitle=dest});if(site()===sn&&section()===sec&&surface()===surf&&title()===t)document.getElementById("projectTitle").value=dest;selectedSavedProject=dest;renderSaved();selectSavedProject(dest);updateCurrent();saveDraft();}
+function copyProject(sn,sec,surf,t){const src=projectEntries(t,sn,sec,surf);if(!src.length)return;const dest=(prompt("コピー先の遺構名を入力してください。\n例：P12","")||"").trim();if(!dest)return;if(dest===t){alert("コピー元と同じ遺構名は指定できません。");return;}if(Object.values(history).some(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf&&x.projectTitle===dest)){alert("同じ調査区・検出面に「"+dest+"」がすでに存在します。");return;}src.forEach(x=>{const y=JSON.parse(JSON.stringify(x));y.projectTitle=dest;y.savedAt=new Date().toLocaleString("ja-JP");history[key(sn,sec,surf,dest,y.layer)]=y;});saveHistory();selectedSavedProject=dest;renderSaved();selectSavedProject(dest);}
+function moveProject(sn,sec,surf,t){
+ const src=projectEntries(t,sn,sec,surf);if(!src.length)return;
+ const sections=[...new Set(Object.values(history).filter(x=>x.siteName===sn).map(x=>x.sectionName))].sort((a,b)=>a.localeCompare(b,"ja"));
+ const wrap=document.createElement("div");wrap.className="modal-backdrop";
+ wrap.innerHTML=`<div class="modal-card"><h2>遺構の移動</h2><p class="hint">${esc(t)} の全層を同じ現場内の別の保存場所へ移動します。</p><div class="field"><label>移動先の調査区</label><select id="moveSection">${sections.map(v=>`<option value="${esc(v)}" ${v===sec?"selected":""}>${esc(v)}</option>`).join("")}</select></div><div class="field"><label>移動先の検出面</label><select id="moveSurface"></select></div><div class="field" id="moveNewSurfaceField" style="display:none"><label>新しい検出面名</label><input id="moveNewSurface" type="text" placeholder="例：3面"><div class="hint">入力した名称で新しい検出面を作成し、この遺構を移動します。</div></div><div class="actions"><button class="btn" id="moveCancel">キャンセル</button><button class="btn primary" id="moveGo">この場所へ移動</button></div></div>`;
+ document.body.appendChild(wrap);const secSel=wrap.querySelector("#moveSection"),surfSel=wrap.querySelector("#moveSurface"),newSurfField=wrap.querySelector("#moveNewSurfaceField"),newSurfInput=wrap.querySelector("#moveNewSurface");
+ const updateNewSurfaceField=()=>{newSurfField.style.display=surfSel.value==="__new__"?"block":"none";if(surfSel.value==="__new__")setTimeout(()=>newSurfInput.focus(),0);};
+ const fill=()=>{const vals=[...new Set(Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===secSel.value).map(x=>x.surfaceName))].sort((a,b)=>a.localeCompare(b,"ja"));if(!vals.includes("未区分"))vals.unshift("未区分");surfSel.innerHTML=vals.map(v=>`<option value="${esc(v)}" ${v===surf?"selected":""}>${esc(v)}</option>`).join("")+`<option value="__new__">＋ 新しい検出面を作成</option>`;updateNewSurfaceField();};fill();secSel.onchange=fill;surfSel.onchange=updateNewSurfaceField;
+ wrap.querySelector("#moveCancel").onclick=()=>wrap.remove();wrap.querySelector("#moveGo").onclick=()=>{const dsec=secSel.value;let dsurf=surfSel.value;if(dsurf==="__new__"){dsurf=newSurfInput.value.trim();if(!dsurf){alert("新しい検出面名を入力してください。");newSurfInput.focus();return;}if(dsurf==="__new__"){alert("別の検出面名を入力してください。");return;}}if(dsec===sec&&dsurf===surf){alert("現在と同じ保存場所です。");return;}if(Object.values(history).some(x=>x.siteName===sn&&x.sectionName===dsec&&x.surfaceName===dsurf&&x.projectTitle===t)){alert("移動先に同名の遺構「"+t+"」が存在します。移動を中止しました。");return;}if(!confirm("「"+sec+" / "+surf+"」から「"+dsec+" / "+dsurf+"」へ遺構「"+t+"」を移動しますか？"))return;const out={};for(const x0 of Object.values(history)){const y=JSON.parse(JSON.stringify(x0));if(y.siteName===sn&&y.sectionName===sec&&y.surfaceName===surf&&y.projectTitle===t){y.sectionName=dsec;y.surfaceName=dsurf;y.savedAt=new Date().toLocaleString("ja-JP");}const k=key(y.siteName,y.sectionName,y.surfaceName,y.projectTitle,y.layer);if(out[k]){alert("保存先のデータと衝突したため、移動を中止しました。");return;}out[k]=y;}createAutoSnapshot("遺構移動前");history=out;saveHistory();wrap.remove();selectedSavedSection=dsec;selectedSavedSurface=dsurf;selectedSavedProject=t;renderSaved();selectSavedProject(t);updateCurrent();};
 }
-
-function normalizeHistory(){
- const out={};Object.values(history||{}).forEach(x=>{x.siteName=x.siteName||"未分類の現場";x.sectionName=x.sectionName||"未区分";x.projectTitle=x.projectTitle||"無題の遺構";out[key(x.siteName,x.sectionName,x.projectTitle,x.layer)]=x});history=out;
-}
+function normalizeHistory(){const out={};Object.values(history||{}).forEach(x=>{x.siteName=x.siteName||"未分類の現場";x.sectionName=x.sectionName||"未区分";x.surfaceName=x.surfaceName||"未区分";x.projectTitle=x.projectTitle||"無題の遺構";out[key(x.siteName,x.sectionName,x.surfaceName,x.projectTitle,x.layer)]=x});history=out;}
 function entryTime(x){const d=Date.parse(x.savedAt||"");return Number.isFinite(d)?d:0}
 function siteEntries(sn){return Object.values(history).filter(x=>x.siteName===sn)}
 function sectionEntries(sec,sn=selectedSavedSite){return Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec)}
-function projectEntries(t,sn=selectedSavedSite||site(),sec=selectedSavedSection||section()){return Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec&&x.projectTitle===t).sort((a,b)=>Number(a.layer)-Number(b.layer))}
+function surfaceEntries(surf,sn=selectedSavedSite,sec=selectedSavedSection){return Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf)}
+function projectEntries(t,sn=selectedSavedSite||site(),sec=selectedSavedSection||section(),surf=selectedSavedSurface||surface()){return Object.values(history).filter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf&&x.projectTitle===t).sort((a,b)=>Number(a.layer)-Number(b.layer))}
 
 const savedColorVisible=new Set();
-function savedLayerUiKey(x){return key(x.siteName,x.sectionName,x.projectTitle,x.layer)}
+function savedLayerUiKey(x){return key(x.siteName,x.sectionName,x.surfaceName,x.projectTitle,x.layer)}
 function toggleSavedColor(k){
  if(savedColorVisible.has(k))savedColorVisible.delete(k);else savedColorVisible.add(k);
  const row=document.querySelector(`[data-color-key="${CSS.escape(k)}"]`);
@@ -733,7 +776,7 @@ function toggleSavedColor(k){
  if(btn)btn.textContent=visible?"色を非表示":"色を表示";
 }
 function setAllSavedColors(show){
- const entries=projectEntries(selectedSavedProject,selectedSavedSite,selectedSavedSection).filter(x=>x.data&&x.data.color);
+ const entries=projectEntries(selectedSavedProject,selectedSavedSite,selectedSavedSection,selectedSavedSurface).filter(x=>x.data&&x.data.color);
  entries.forEach(x=>{const k=savedLayerUiKey(x);if(show)savedColorVisible.add(k);else savedColorVisible.delete(k)});
  renderSaved();
 }
@@ -746,61 +789,53 @@ function savedColorHtml(x){
 function renderSaved(){
  const q=(document.getElementById("savedSearch")?.value||"").trim().toLowerCase(),sortMode=document.getElementById("savedSort")?.value||"recent";
  const all=Object.values(history),sites={};all.forEach(x=>{(sites[x.siteName]??=[]).push(x)});
- let names=Object.keys(sites).filter(sn=>!q||sn.toLowerCase().includes(q)||sites[sn].some(x=>(x.sectionName+" "+x.projectTitle).toLowerCase().includes(q)));
+ let names=Object.keys(sites).filter(sn=>!q||sn.toLowerCase().includes(q)||sites[sn].some(x=>(x.sectionName+" "+x.surfaceName+" "+x.projectTitle).toLowerCase().includes(q)));
  names.sort((a,b)=>sortMode==="title"?a.localeCompare(b,"ja"):Math.max(...sites[b].map(entryTime))-Math.max(...sites[a].map(entryTime)));
  document.getElementById("siteList").innerHTML=names.length?names.map(sn=>`<button class="site-chip" onclick='selectSavedSite(${JSON.stringify(sn)})'>${esc(sn)}</button>`).join(""):'<div class="hint">まだ保存されたデータはありません。</div>';
  if(!selectedSavedSite||!sites[selectedSavedSite])return;
  document.getElementById("savedSiteHeading").textContent=selectedSavedSite;document.getElementById("savedSiteBreadcrumb").textContent="現場："+selectedSavedSite;
- const secs={};sites[selectedSavedSite].forEach(x=>{(secs[x.sectionName]??=[]).push(x)});let secNames=Object.keys(secs).filter(v=>!q||v.toLowerCase().includes(q)||secs[v].some(x=>x.projectTitle.toLowerCase().includes(q)));secNames.sort((a,b)=>a.localeCompare(b,"ja"));
- document.getElementById("sectionList").innerHTML=secNames.map(v=>`<button class="site-chip" onclick='selectSavedSection(${JSON.stringify(v)})'>${esc(v)}（${new Set(secs[v].map(x=>x.projectTitle)).size}件）</button>`).join("");
+ const secs={};sites[selectedSavedSite].forEach(x=>{(secs[x.sectionName]??=[]).push(x)});let secNames=Object.keys(secs).filter(v=>!q||v.toLowerCase().includes(q)||secs[v].some(x=>(x.surfaceName+" "+x.projectTitle).toLowerCase().includes(q)));secNames.sort((a,b)=>a.localeCompare(b,"ja"));
+ document.getElementById("sectionList").innerHTML=secNames.map(v=>`<button class="site-chip" onclick='selectSavedSection(${JSON.stringify(v)})'>${esc(v)}（${new Set(secs[v].map(x=>x.surfaceName)).size}面）</button>`).join("");
  if(!selectedSavedSection||!secs[selectedSavedSection])return;
  document.getElementById("savedSectionHeading").textContent=selectedSavedSection;document.getElementById("savedSectionBreadcrumb").textContent="現場："+selectedSavedSite+"　›　調査区："+selectedSavedSection;
- const ps={};secs[selectedSavedSection].forEach(x=>{(ps[x.projectTitle]??=[]).push(x)});let pts=Object.keys(ps).sort((a,b)=>a.localeCompare(b,"ja"));
+ const surfs={};secs[selectedSavedSection].forEach(x=>{(surfs[x.surfaceName]??=[]).push(x)});let surfNames=Object.keys(surfs).filter(v=>!q||v.toLowerCase().includes(q)||surfs[v].some(x=>x.projectTitle.toLowerCase().includes(q)));surfNames.sort((a,b)=>a.localeCompare(b,"ja"));
+ document.getElementById("surfaceList").innerHTML=surfNames.map(v=>`<button class="project-chip" onclick='selectSavedSurface(${JSON.stringify(v)})'>${esc(v)}（${new Set(surfs[v].map(x=>x.projectTitle)).size}件）</button>`).join("");
+ if(!selectedSavedSurface||!surfs[selectedSavedSurface])return;
+ document.getElementById("savedSurfaceHeading").textContent=selectedSavedSurface;document.getElementById("savedSurfaceBreadcrumb").textContent="現場："+selectedSavedSite+"　›　調査区："+selectedSavedSection+"　›　検出面："+selectedSavedSurface;
+ const ps={};surfs[selectedSavedSurface].forEach(x=>{(ps[x.projectTitle]??=[]).push(x)});let pts=Object.keys(ps).sort((a,b)=>a.localeCompare(b,"ja"));
  document.getElementById("projectList").innerHTML=pts.map(t=>`<button class="project-chip" onclick='selectSavedProject(${JSON.stringify(t)})'>${esc(t)}（${ps[t].length}層）</button>`).join("");
  if(!selectedSavedProject||!ps[selectedSavedProject])return;
- const entries=ps[selectedSavedProject].sort((a,b)=>Number(a.layer)-Number(b.layer));document.getElementById("savedProjectHeading").textContent=selectedSavedProject;document.getElementById("savedProjectBreadcrumb").textContent="現場："+selectedSavedSite+"　›　調査区："+selectedSavedSection+"　›　遺構："+selectedSavedProject;
- document.getElementById("savedProjects").innerHTML=entries.map(x=>`<div class="saved-layer"><div class="saved-summary" onclick="toggleSavedLayer(this)"><div class="saved-summary-text"><div class="layer-text">${esc(x.text)}</div><div class="saved-date">${esc(x.savedAt||"")}</div></div><div class="saved-chevron">›</div></div><div class="saved-detail">${savedColorHtml(x)}<div class="saved-actions"><button class="btn primary" onclick='loadLayer(${JSON.stringify(x).replace(/'/g,"&#39;")})'>この層を編集</button><button class="btn" onclick='deleteLayer(${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)},${JSON.stringify(selectedSavedProject)},${JSON.stringify(x.layer)})'>削除</button></div></div></div>`).join("")+`<div class="saved-tools"><button class="btn" onclick='downloadTxtForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)})'>TXT保存</button><button class="btn" onclick='printPdfForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)})'>PDF保存</button></div>`;
+ const entries=ps[selectedSavedProject].sort((a,b)=>Number(a.layer)-Number(b.layer));document.getElementById("savedProjectHeading").textContent=selectedSavedProject;document.getElementById("savedProjectBreadcrumb").textContent="現場："+selectedSavedSite+"　›　調査区："+selectedSavedSection+"　›　検出面："+selectedSavedSurface+"　›　遺構："+selectedSavedProject;
+ document.getElementById("savedProjects").innerHTML=entries.map(x=>`<div class="saved-layer"><div class="saved-summary" onclick="toggleSavedLayer(this)"><div class="saved-summary-text"><div class="layer-text">${esc(x.text)}</div><div class="saved-date">${esc(x.savedAt||"")}</div></div><div class="saved-chevron">›</div></div><div class="saved-detail">${savedColorHtml(x)}<div class="saved-actions"><button class="btn primary" onclick='loadLayer(${JSON.stringify(x).replace(/'/g,"&#39;")})'>この層を編集</button><button class="btn" onclick='deleteLayer(${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)},${JSON.stringify(selectedSavedSurface)},${JSON.stringify(selectedSavedProject)},${JSON.stringify(x.layer)})'>削除</button></div></div></div>`).join("")+`<div class="saved-tools"><button class="btn" onclick='downloadTxtForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)},${JSON.stringify(selectedSavedSurface)})'>TXT保存</button><button class="btn" onclick='printPdfForProject(${JSON.stringify(selectedSavedProject)},${JSON.stringify(selectedSavedSite)},${JSON.stringify(selectedSavedSection)},${JSON.stringify(selectedSavedSurface)})'>PDF保存</button></div>`;
 }
-function hideSavedDetails(){["siteDetail","sectionDetail","projectDetail"].forEach(id=>document.getElementById(id).style.display="none")}
-function selectSavedSite(sn){selectedSavedSite=sn;selectedSavedSection="";selectedSavedProject="";document.getElementById("siteList").style.display="none";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved()}
-function backToSiteList(){selectedSavedSite=selectedSavedSection=selectedSavedProject="";hideSavedDetails();document.getElementById("siteList").style.display="";renderSaved()}
-function selectSavedSection(sec){selectedSavedSection=sec;selectedSavedProject="";hideSavedDetails();document.getElementById("sectionDetail").style.display="block";renderSaved()}
-function backToSectionList(){selectedSavedSection=selectedSavedProject="";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved()}
+function hideSavedDetails(){["siteDetail","sectionDetail","surfaceDetail","projectDetail"].forEach(id=>document.getElementById(id).style.display="none")}
+function selectSavedSite(sn){selectedSavedSite=sn;selectedSavedSection=selectedSavedSurface=selectedSavedProject="";document.getElementById("siteList").style.display="none";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved()}
+function backToSiteList(){selectedSavedSite=selectedSavedSection=selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("siteList").style.display="";renderSaved()}
+function selectSavedSection(sec){selectedSavedSection=sec;selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("sectionDetail").style.display="block";renderSaved()}
+function backToSectionList(){selectedSavedSection=selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved()}
+function selectSavedSurface(surf){selectedSavedSurface=surf;selectedSavedProject="";hideSavedDetails();document.getElementById("surfaceDetail").style.display="block";renderSaved()}
+function backToSurfaceList(){selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("sectionDetail").style.display="block";renderSaved()}
 function selectSavedProject(t){selectedSavedProject=t;hideSavedDetails();document.getElementById("projectDetail").style.display="block";renderSaved()}
-function backToProjectList(){selectedSavedProject="";hideSavedDetails();document.getElementById("sectionDetail").style.display="block";renderSaved()}
+function backToProjectList(){selectedSavedProject="";hideSavedDetails();document.getElementById("surfaceDetail").style.display="block";renderSaved()}
 function toggleSavedLayer(el){el.parentElement.classList.toggle("open")}
 function buildText(t,entries){return "【"+t+"】\n"+entries.map(x=>"第"+x.layer+"層 "+x.text.replace(/^第\d+層\s*/,"")).join("\n")+"\n"}
 function downloadText(name,text){const blob=new Blob([text],{type:"text/plain;charset=utf-8"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name.replace(/[\\/:*?"<>|]/g,"_")+".txt";a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
-function downloadTxtForProject(t,sn=selectedSavedSite,sec=selectedSavedSection){const e=projectEntries(t,sn,sec);if(e.length)downloadText(sn+"_"+sec+"_"+t,sn+"\n"+sec+"\n\n"+buildText(t,e))}
-function downloadTxtForSection(sn,sec){const e=sectionEntries(sec,sn);if(!e.length)return;let text=sn+"\n【"+sec+"】\n\n";const projects=[...new Set(e.map(x=>x.projectTitle))];projects.forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec))+"\n"});downloadText(sn+"_"+sec,text)}
-function downloadTxtForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let text=sn+"\n\n";secs.forEach(sec=>{text+="【"+sec+"】\n";const walls=[...new Set(sectionEntries(sec,sn).map(x=>x.projectTitle))];walls.forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec))+"\n"})});downloadText(sn,text)}
-function printHtml(titleText,body){
- const frame=document.createElement("iframe");
- frame.setAttribute("aria-hidden","true");
- frame.style.position="fixed";frame.style.right="0";frame.style.bottom="0";
- frame.style.width="0";frame.style.height="0";frame.style.border="0";
- document.body.appendChild(frame);
- const d=frame.contentDocument||frame.contentWindow.document;
- d.open();
- d.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>body{font-family:sans-serif;margin:25mm;line-height:1.8}h1{font-size:24px}h2{margin-top:24px}h3{margin-top:18px}p{border-bottom:1px solid #ddd;padding:7px 0}
-
-</style></head><body><h1>${esc(titleText)}</h1>${body}</body></html>`);
- d.close();
- const cleanup=()=>setTimeout(()=>{if(frame.parentNode)frame.remove()},500);
- frame.contentWindow.addEventListener("afterprint",cleanup,{once:true});
- setTimeout(()=>{frame.contentWindow.focus();frame.contentWindow.print();setTimeout(cleanup,30000)},300);
-}
-function printPdfForProject(t,sn=selectedSavedSite,sec=selectedSavedSection){const e=projectEntries(t,sn,sec);if(e.length)printHtml(sn+" / "+sec+" / "+t,`<h2>${esc(sec)}</h2><h3>${esc(t)}</h3>`+e.map(x=>`<p>${esc(x.text)}</p>`).join(""))}
-function printPdfForSection(sn,sec){const e=sectionEntries(sec,sn);if(!e.length)return;let body=`<h2>${esc(sec)}</h2>`;[...new Set(e.map(x=>x.projectTitle))].forEach(t=>{body+=`<h3>${esc(t)}</h3>`+projectEntries(t,sn,sec).map(x=>`<p>${esc(x.text)}</p>`).join("")});printHtml(sn+" / "+sec,body)}
-function printPdfForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let body="";secs.forEach(sec=>{body+=`<h2>${esc(sec)}</h2>`;[...new Set(sectionEntries(sec,sn).map(x=>x.projectTitle))].forEach(t=>{body+=`<h3>${esc(t)}</h3>`+projectEntries(t,sn,sec).map(x=>`<p>${esc(x.text)}</p>`).join("")})});printHtml(sn,body)}
+function downloadTxtForProject(t,sn=selectedSavedSite,sec=selectedSavedSection,surf=selectedSavedSurface){const e=projectEntries(t,sn,sec,surf);if(e.length)downloadText(sn+"_"+sec+"_"+surf+"_"+t,sn+"\n"+sec+"\n"+surf+"\n\n"+buildText(t,e))}
+function downloadTxtForSection(sn,sec){const e=sectionEntries(sec,sn);if(!e.length)return;let text=sn+"\n【"+sec+"】\n\n";const surfs=[...new Set(e.map(x=>x.surfaceName))];surfs.forEach(surf=>{text+="［"+surf+"］\n";const projects=[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))];projects.forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec,surf))+"\n"})});downloadText(sn+"_"+sec,text)}
+function downloadTxtForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let text=sn+"\n\n";secs.forEach(sec=>{text+="【"+sec+"】\n";const surfs=[...new Set(sectionEntries(sec,sn).map(x=>x.surfaceName))];surfs.forEach(surf=>{text+="［"+surf+"］\n";[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))].forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec,surf))+"\n"})})});downloadText(sn,text)}
+function printHtml(titleText,body){const frame=document.createElement("iframe");frame.setAttribute("aria-hidden","true");frame.style.position="fixed";frame.style.right="0";frame.style.bottom="0";frame.style.width="0";frame.style.height="0";frame.style.border="0";document.body.appendChild(frame);const d=frame.contentDocument||frame.contentWindow.document;d.open();d.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>body{font-family:sans-serif;margin:25mm;line-height:1.8}h1{font-size:24px}h2{margin-top:24px}h3{margin-top:18px}h4{margin-top:14px}p{border-bottom:1px solid #ddd;padding:7px 0}</style></head><body><h1>${esc(titleText)}</h1>${body}</body></html>`);d.close();const cleanup=()=>setTimeout(()=>{if(frame.parentNode)frame.remove()},500);frame.contentWindow.addEventListener("afterprint",cleanup,{once:true});setTimeout(()=>{frame.contentWindow.focus();frame.contentWindow.print();setTimeout(cleanup,30000)},300);}
+function printPdfForProject(t,sn=selectedSavedSite,sec=selectedSavedSection,surf=selectedSavedSurface){const e=projectEntries(t,sn,sec,surf);if(e.length)printHtml(sn+" / "+sec+" / "+surf+" / "+t,`<h2>${esc(sec)}</h2><h3>${esc(surf)}</h3><h4>${esc(t)}</h4>`+e.map(x=>`<p>${esc(x.text)}</p>`).join(""))}
+function printPdfForSection(sn,sec){const e=sectionEntries(sec,sn);if(!e.length)return;let body=`<h2>${esc(sec)}</h2>`;[...new Set(e.map(x=>x.surfaceName))].forEach(surf=>{body+=`<h3>${esc(surf)}</h3>`;[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))].forEach(t=>{body+=`<h4>${esc(t)}</h4>`+projectEntries(t,sn,sec,surf).map(x=>`<p>${esc(x.text)}</p>`).join("")})});printHtml(sn+" / "+sec,body)}
+function printPdfForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let body="";secs.forEach(sec=>{body+=`<h2>${esc(sec)}</h2>`;[...new Set(sectionEntries(sec,sn).map(x=>x.surfaceName))].forEach(surf=>{body+=`<h3>${esc(surf)}</h3>`;[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))].forEach(t=>{body+=`<h4>${esc(t)}</h4>`+projectEntries(t,sn,sec,surf).map(x=>`<p>${esc(x.text)}</p>`).join("")})})});printHtml(sn,body)}
 
 document.getElementById("sectionName").addEventListener("input",function(){updateCurrent();updateTopStatus();updateAccumulated();saveDraft();});
+document.getElementById("surfaceName").addEventListener("input",function(){updateCurrent();updateTopStatus();updateAccumulated();saveDraft();});
 document.getElementById("siteName").addEventListener("input",function(){updateCurrent();updateTopStatus();updateAccumulated();saveDraft();});
 let lastProjectInput=document.getElementById("projectTitle").value.trim();
 document.getElementById("projectTitle").addEventListener("input",function(){
  const now=this.value.trim();
  if(now!==lastProjectInput){
-  const exists=Object.values(history).some(x=>x.siteName===site()&&x.sectionName===section()&&x.projectTitle===now);
+  const exists=Object.values(history).some(x=>x.siteName===site()&&x.sectionName===section()&&x.surfaceName===surface()&&x.projectTitle===now);
   if(now&&!exists&&Number(state.layer)!==1)resetLayer(1);
   lastProjectInput=now;
  }
@@ -840,7 +875,7 @@ renderTabs();renderPanel();if(draftRestored)generate();updateCurrent();renderSav
 function updateAccumulated(){
   var box=document.getElementById("v15Layers");
   if(!box) return;
-  var entries=projectEntries(title(),site(),section()).sort(function(a,b){return Number(a.layer)-Number(b.layer);});
+  var entries=projectEntries(title(),site(),section(),surface()).sort(function(a,b){return Number(a.layer)-Number(b.layer);});
   if(!entries.length){box.textContent="まだ作成されていません。";return;}
   box.innerHTML=entries.map(function(x){
     var text=x.text||"";
@@ -858,7 +893,8 @@ function updateTopStatus(){
   var t=document.getElementById("v13TopTitle");
   var l=document.getElementById("v13TopLayer");
   var secEl=document.getElementById("sectionName"); var sec=secEl?secEl.value.trim():""; if(!sec)sec="未区分";
-  if(t) t.textContent=sn+" ／ "+sec+" ／ "+title;
+  var surfEl=document.getElementById("surfaceName"); var surf=surfEl?surfEl.value.trim():""; if(!surf)surf="未区分";
+  if(t) t.textContent=sn+" ／ "+sec+" ／ "+surf+" ／ "+title;
   if(l) l.textContent="第"+layer+"層";
 }
 
