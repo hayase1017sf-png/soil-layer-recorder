@@ -795,7 +795,7 @@ function renderSaved(){
  if(!selectedSavedSite||!sites[selectedSavedSite])return;
  document.getElementById("savedSiteHeading").textContent=selectedSavedSite;document.getElementById("savedSiteBreadcrumb").textContent="現場："+selectedSavedSite;
  const secs={};sites[selectedSavedSite].forEach(x=>{(secs[x.sectionName]??=[]).push(x)});let secNames=Object.keys(secs).filter(v=>!q||v.toLowerCase().includes(q)||secs[v].some(x=>(x.surfaceName+" "+x.projectTitle).toLowerCase().includes(q)));secNames.sort((a,b)=>a.localeCompare(b,"ja"));
- document.getElementById("sectionList").innerHTML=secNames.map(v=>`<button class="site-chip" onclick='selectSavedSection(${JSON.stringify(v)})'>${esc(v)}（${new Set(secs[v].map(x=>x.surfaceName)).size}面）</button>`).join("");
+ document.getElementById("sectionList").innerHTML=secNames.map(v=>`<button class="site-chip" onclick='selectSavedSection(${JSON.stringify(v)})'>${esc(v)}</button>`).join("");
  if(!selectedSavedSection||!secs[selectedSavedSection])return;
  document.getElementById("savedSectionHeading").textContent=selectedSavedSection;document.getElementById("savedSectionBreadcrumb").textContent="現場："+selectedSavedSite+"　›　調査区："+selectedSavedSection;
  const surfs={};secs[selectedSavedSection].forEach(x=>{(surfs[x.surfaceName]??=[]).push(x)});let surfNames=Object.keys(surfs).filter(v=>!q||v.toLowerCase().includes(q)||surfs[v].some(x=>x.projectTitle.toLowerCase().includes(q)));surfNames.sort((a,b)=>a.localeCompare(b,"ja"));
