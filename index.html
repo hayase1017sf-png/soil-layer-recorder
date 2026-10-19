@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v66 記憶域安全＋色補正版16 PWA</title>
+<title>土層記載文作成アプリ v67 記憶域安全＋色補正版16 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -731,7 +731,26 @@ function deleteByFilter(test){createAutoSnapshot("まとめて削除前");Object
 function deleteSite(sn){if(!confirm("現場「"+sn+"」と、その中のすべてのデータを削除しますか？"))return;deleteByFilter(x=>x.siteName===sn);selectedSavedSite=selectedSavedSection=selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("siteList").style.display="";renderSaved();updateCurrent();}
 function deleteSection(sn,sec){if(!confirm("調査区「"+sec+"」と、その中のすべての検出面・遺構・層を削除しますか？"))return;deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec);selectedSavedSection=selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved();updateCurrent();}
 function deleteSurface(sn,sec,surf){if(!confirm("検出面「"+surf+"」と、その中のすべての遺構・層を削除しますか？"))return;deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf);selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("sectionDetail").style.display="block";renderSaved();updateCurrent();}
-function deleteProject(sn,sec,surf,t){if(!confirm("遺構「"+t+"」と、その中のすべての層を削除しますか？"))return;deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf&&x.projectTitle===t);selectedSavedProject="";hideSavedDetails();document.getElementById("surfaceDetail").style.display="block";renderSaved();updateCurrent();}
+function deleteProject(sn,sec,surf,t){
+ if(!confirm("遺構「"+t+"」と、その中のすべての層を削除しますか？"))return;
+ deleteByFilter(x=>x.siteName===sn&&x.sectionName===sec&&x.surfaceName===surf&&x.projectTitle===t);
+ selectedSavedProject="";
+ hideSavedDetails();
+ const remainSurface=surfaceEntries(surf,sn,sec);
+ const remainSite=siteEntries(sn);
+ if(remainSurface.length){
+  document.getElementById("surfaceDetail").style.display="block";
+  renderSaved();
+ }else if(remainSite.length){
+  selectedSavedSection=selectedSavedSurface="";
+  selectSavedSite(sn);
+ }else{
+  selectedSavedSite=selectedSavedSection=selectedSavedSurface="";
+  document.getElementById("siteList").style.display="";
+  renderSaved();
+ }
+ updateCurrent();
+}
 function rebuildHistoryWithRename(transform){createAutoSnapshot("名称変更・統合前");const out={};for(const x0 of Object.values(history)){const x=JSON.parse(JSON.stringify(x0));transform(x);const k=key(x.siteName,x.sectionName,x.surfaceName,x.projectTitle,x.layer);if(out[k])return false;out[k]=x;}history=out;saveHistory();return true;}
 function renameSite(sn){const dest=(prompt("新しい現場名を入力してください。",sn)||"").trim();if(!dest||dest===sn)return;if(Object.values(history).some(x=>x.siteName===dest)){alert("現場「"+dest+"」はすでに存在します。別の名前を指定してください。");return;}if(!confirm("現場名を「"+sn+"」から「"+dest+"」へ変更しますか？\n中の調査区・検出面・遺構・層もまとめて移動します。"))return;rebuildHistoryWithRename(x=>{if(x.siteName===sn)x.siteName=dest});if(document.getElementById("siteName").value.trim()===sn)document.getElementById("siteName").value=dest;selectedSavedSite=dest;renderSaved();selectSavedSite(dest);updateCurrent();saveDraft();}
 function renameSection(sn,sec){
