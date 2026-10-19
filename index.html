@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v67 記憶域安全＋色補正版16 PWA</title>
+<title>土層記載文作成アプリ v68 記憶域安全＋色補正版16 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -856,7 +856,13 @@ function renderSaved(){
  document.getElementById("savedSurfaceHeading").style.display=surfHidden?"none":"";
  document.getElementById("surfaceManage").style.display=surfHidden?"none":"";
  document.getElementById("savedSurfaceBreadcrumb").textContent="現場："+selectedSavedSite+(isUnclassified(selectedSavedSection)?"":"　›　調査区："+selectedSavedSection)+(surfHidden?"":"　›　検出面："+selectedSavedSurface);
- const backSurf=document.getElementById("backFromSurfaceBtn");if(backSurf)backSurf.textContent=isUnclassified(selectedSavedSection)?"← 現場一覧へ":(surfHidden?"← 調査区一覧へ":"← 検出面一覧へ");
+ const backSurf=document.getElementById("backFromSurfaceBtn");if(backSurf){
+  const navSurfs=savedSurfaceNames(selectedSavedSite,selectedSavedSection);
+  const soleUnclassifiedSurface=navSurfs.length===1&&isUnclassified(navSurfs[0]);
+  backSurf.textContent=isUnclassified(selectedSavedSection)
+   ?(soleUnclassifiedSurface?"← 現場一覧へ":"← 検出面一覧へ")
+   :(soleUnclassifiedSurface?"← 調査区一覧へ":"← 検出面一覧へ");
+ }
  const ps={};surfs[selectedSavedSurface].forEach(x=>{(ps[x.projectTitle]??=[]).push(x)});let pts=Object.keys(ps).sort((a,b)=>a.localeCompare(b,"ja"));
  document.getElementById("projectList").innerHTML=pts.map(t=>{const rd=projectRecordDate(ps[t]);return `<button class="project-chip" onclick='selectSavedProject(${JSON.stringify(t)})'><span class="project-chip-name">${esc(t)}（${ps[t].length}層）</span><span class="project-chip-date">${esc(formatRecordDate(rd))}</span></button>`}).join("");
  if(!selectedSavedProject||!ps[selectedSavedProject])return;
@@ -884,12 +890,41 @@ function selectSavedSection(sec){
  else document.getElementById("sectionDetail").style.display="block";
  renderSaved()
 }
-function backToSectionList(){selectedSavedSection=selectedSavedSurface=selectedSavedProject="";hideSavedDetails();document.getElementById("siteDetail").style.display="block";renderSaved()}
+function backToSectionList(){
+ const sec=selectedSavedSection;
+ selectedSavedSection=selectedSavedSurface=selectedSavedProject="";
+ hideSavedDetails();
+ if(isUnclassified(sec)){
+  selectedSavedSite="";
+  document.getElementById("siteList").style.display="";
+ }else{
+  document.getElementById("siteDetail").style.display="block";
+ }
+ renderSaved()
+}
 function selectSavedSurface(surf){selectedSavedSurface=surf;selectedSavedProject="";hideSavedDetails();document.getElementById("surfaceDetail").style.display="block";renderSaved()}
 function backToSurfaceList(){
- selectedSavedSurface=selectedSavedProject="";hideSavedDetails();
- if(isUnclassified(selectedSavedSection)){selectedSavedSection="";selectedSavedSite="";document.getElementById("siteList").style.display="";}
- else document.getElementById("sectionDetail").style.display="block";
+ const sn=selectedSavedSite,sec=selectedSavedSection;
+ const surfs=savedSurfaceNames(sn,sec);
+ const soleUnclassifiedSurface=surfs.length===1&&isUnclassified(surfs[0]);
+ selectedSavedSurface=selectedSavedProject="";
+ hideSavedDetails();
+
+ if(isUnclassified(sec)){
+  if(soleUnclassifiedSurface){
+   selectedSavedSection="";selectedSavedSite="";
+   document.getElementById("siteList").style.display="";
+  }else{
+   document.getElementById("sectionDetail").style.display="block";
+  }
+ }else{
+  if(soleUnclassifiedSurface){
+   selectedSavedSection="";
+   document.getElementById("siteDetail").style.display="block";
+  }else{
+   document.getElementById("sectionDetail").style.display="block";
+  }
+ }
  renderSaved()
 }
 function selectSavedProject(t){selectedSavedProject=t;hideSavedDetails();document.getElementById("projectDetail").style.display="block";renderSaved()}
