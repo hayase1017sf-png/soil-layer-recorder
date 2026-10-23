@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v68 記憶域安全＋色補正版16 PWA</title>
+<title>土層記載文作成アプリ v69 記憶域安全＋色補正版16 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -160,6 +160,20 @@ textarea{min-height:120px;resize:vertical}
 
 
 
+
+/* v69: 作成中の層を常時表示 + 作成済み層クイック移動 */
+.layer-workbar{position:sticky;top:62px;z-index:19;background:#fff;border:1px solid #bbb;border-radius:10px;margin:0 0 10px;padding:8px 10px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.layer-workbar .mobile-current{display:block;position:static!important;margin:0!important;padding:0!important;background:transparent!important;color:#222!important;font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.layer-quick-nav{display:flex;align-items:center;gap:6px;overflow-x:auto;padding-top:7px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.layer-quick-nav::-webkit-scrollbar{display:none}
+.layer-quick-chip{flex:0 0 auto;border:1px solid #aaa;background:#fff;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+.layer-quick-chip.active{background:#222;color:#fff;border-color:#222}
+.layer-return-btn{flex:0 0 auto;border:1px solid #222;background:#f5f5f5;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+@media(max-width:700px){
+ .layer-workbar{top:60px;margin:0 -10px 8px;border-left:0;border-right:0;border-radius:0;padding:7px 10px}
+ .tabs{top:126px}
+}
+
 </style>
 
 <style>
@@ -260,7 +274,7 @@ textarea{min-height:120px;resize:vertical}
 <div class="app">
   <div class="screen-nav"><button id="navCreate" class="btn active" type="button" onclick="showScreen('create')">土層記載を作成</button><button id="navSaved" class="btn" type="button" onclick="showScreen('saved')">保存データ</button></div>
   <div id="createScreen" class="app-screen active">
-  <div id="mobileCurrent" class="mobile-current">現在の入力</div>
+  <div id="layerWorkbar" class="layer-workbar"><div id="mobileCurrent" class="mobile-current">現在の入力</div><div id="layerQuickNav" class="layer-quick-nav"></div></div>
 
   <div class="card">
     <div class="project-title">現場名</div>
@@ -645,6 +659,57 @@ function generate(){
  return s;
 }
 function updateOutput(){generate();saveDraft()}
+
+let workingLayerReturn=null;
+function captureWorkingLayerReturn(){
+ if(workingLayerReturn)return;
+ workingLayerReturn={siteName:document.getElementById("siteName").value,sectionName:document.getElementById("sectionName").value,surfaceName:document.getElementById("surfaceName").value,projectTitle:document.getElementById("projectTitle").value,state:JSON.parse(JSON.stringify(state)),selectedHue:selectedHue,active:active};
+}
+function currentStateDiffersFromSaved(){
+ const saved=findSavedLayer(state.layer);
+ if(!saved||!saved.data)return false;
+ try{return JSON.stringify(saved.data)!==JSON.stringify(state)}catch(e){return false}
+}
+function resetInputHorizontalScroll(){
+ hueScrollLeft=0;
+ requestAnimationFrame(()=>{
+  const root=document.getElementById("createScreen");if(!root)return;
+  root.querySelectorAll(".tabs,.hue-filter,.options,.option-grid,.layer-quick-nav").forEach(el=>{el.scrollLeft=0});
+ });
+}
+function openSavedLayerFromQuick(layerNo){
+ const x=findSavedLayer(layerNo);if(!x)return;
+ if(Number(state.layer)===Number(layerNo))return;
+ if(workingLayerReturn&&currentStateDiffersFromSaved()){
+  if(!confirm("現在開いている第"+state.layer+"層の変更はまだ保存されていません。保存せず別の層を開きますか？"))return;
+ }
+ captureWorkingLayerReturn();
+ state=JSON.parse(JSON.stringify(x.data));state.layer=Number(x.layer)||Number(layerNo);active=0;
+ renderTabs();renderPanel();generate();updateCurrent();saveDraft();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+function restoreWorkingLayer(){
+ if(!workingLayerReturn)return;
+ if(currentStateDiffersFromSaved()){
+  if(!confirm("現在開いている第"+state.layer+"層の変更はまだ保存されていません。保存せず編集中の層へ戻りますか？"))return;
+ }
+ const d=workingLayerReturn;workingLayerReturn=null;
+ document.getElementById("siteName").value=d.siteName||"";
+ document.getElementById("sectionName").value=d.sectionName||"";
+ document.getElementById("surfaceName").value=d.surfaceName||"";
+ document.getElementById("projectTitle").value=d.projectTitle||"";
+ state=JSON.parse(JSON.stringify(d.state));selectedHue=d.selectedHue||selectedHue;active=Number.isInteger(d.active)?d.active:0;
+ renderTabs();renderPanel();generate();updateCurrent();saveDraft();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+function updateLayerQuickNav(){
+ const box=document.getElementById("layerQuickNav");if(!box)return;
+ const entries=projectEntries(title(),site(),section(),surface()).sort((a,b)=>Number(a.layer)-Number(b.layer));
+ let html=entries.map(x=>`<button type="button" class="layer-quick-chip ${Number(x.layer)===Number(state.layer)?"active":""}" onclick="openSavedLayerFromQuick(${Number(x.layer)})">第${esc(x.layer)}層</button>`).join("");
+ if(!entries.some(x=>Number(x.layer)===Number(state.layer)))html+=`<button type="button" class="layer-quick-chip active">第${state.layer}層 編集中</button>`;
+ if(workingLayerReturn&&Number(workingLayerReturn.state?.layer)!==Number(state.layer))html+=`<button type="button" class="layer-return-btn" onclick="restoreWorkingLayer()">← 編集中の第${workingLayerReturn.state.layer}層へ戻る</button>`;
+ box.innerHTML=html||'<span style="font-size:12px;color:#666">作成済みの層はまだありません。</span>';
+}
 function updateCurrent(){
  const currentText=site()+" ／ "+section()+" ／ "+surface()+" ／ "+title()+" ／ 第"+state.layer+"層";
  document.getElementById("currentName").textContent=currentText;
@@ -655,6 +720,7 @@ function updateCurrent(){
   :"現在：第"+state.layer+"層　｜　次は第"+(state.layer+1)+"層です";
  updateTopStatus();
  updateAccumulated();
+ updateLayerQuickNav();
 }
 function resetLayer(n){
  state={layer:n,color:null,soil:null,mixes:[],viscosity:null,firmness:null,note:""};
@@ -682,7 +748,7 @@ function openNextLayerOrInherit(nextLayer){
   state=JSON.parse(JSON.stringify(existing.data));
   state.layer=Number(existing.layer)||nextLayer;
   active=0;
-  renderTabs();renderPanel();generate();updateCurrent();saveDraft();
+  renderTabs();renderPanel();generate();updateCurrent();saveDraft();resetInputHorizontalScroll();
   window.scrollTo({top:0,behavior:"smooth"});
   return;
  }
@@ -695,6 +761,7 @@ function saveAndFinish(){
 }
 function finishWithoutSave(){
  if(!confirm("現在入力中の変更を保存せずに終了しますか？"))return;
+ workingLayerReturn=null;
  localStorage.removeItem(DRAFT_KEY);
  resetLayer(1);
  localStorage.removeItem(DRAFT_KEY);
@@ -710,12 +777,13 @@ function nextOnly(){openNextLayerOrInherit(state.layer+1)}
 function showInheritDialog(nextLayer){
  const old=JSON.parse(JSON.stringify(state));const labels=[["color","色調"],["soil","主体土"],["viscosity","粘性"],["firmness","締り"],["mixes","混入物"],["note","備考"]];
  const wrap=document.createElement("div");wrap.className="modal-backdrop";wrap.innerHTML=`<div class="modal-card"><h2>次の層へ引き継ぐ項目</h2><p class="hint">必要な項目だけ選択してください。何も選ばなければ新規入力になります。</p><div class="inherit-grid">${labels.map(([k,l])=>`<label class="inherit-item"><input type="checkbox" value="${k}"><span>${l}</span></label>`).join("")}</div><div class="actions"><button class="btn" id="inheritBack">← 元の層に戻る</button><button class="btn" id="inheritNone">引き継がず次へ</button><button class="btn primary" id="inheritGo">選択して次へ</button></div></div>`;document.body.appendChild(wrap);
- const go=use=>{const ns={layer:nextLayer,color:null,soil:null,mixes:[],viscosity:null,firmness:null,note:""};if(use)wrap.querySelectorAll("input:checked").forEach(c=>ns[c.value]=JSON.parse(JSON.stringify(old[c.value])));state=ns;active=0;wrap.remove();renderTabs();renderPanel();generate();updateCurrent();saveDraft()};
+ const go=use=>{const ns={layer:nextLayer,color:null,soil:null,mixes:[],viscosity:null,firmness:null,note:""};if(use)wrap.querySelectorAll("input:checked").forEach(c=>ns[c.value]=JSON.parse(JSON.stringify(old[c.value])));state=ns;active=0;wrap.remove();renderTabs();renderPanel();generate();updateCurrent();saveDraft();resetInputHorizontalScroll()};
  const back=()=>{state=old;wrap.remove();renderTabs();renderPanel();generate();updateCurrent();saveDraft();window.scrollTo({top:0,behavior:"smooth"})};
  wrap.querySelector("#inheritBack").onclick=back;wrap.querySelector("#inheritNone").onclick=()=>go(false);wrap.querySelector("#inheritGo").onclick=()=>go(true);
 }
 
 function loadLayer(x){
+ workingLayerReturn=null;
  document.getElementById("siteName").value=x.siteName||"未分類の現場";document.getElementById("sectionName").value=(x.sectionName&&x.sectionName!=="未区分")?x.sectionName:"";document.getElementById("surfaceName").value=(x.surfaceName&&x.surfaceName!=="未区分")?x.surfaceName:"";document.getElementById("projectTitle").value=x.projectTitle||"";
  state=JSON.parse(JSON.stringify(x.data));
  active=0;renderTabs();renderPanel();generate();updateCurrent();showScreen("create");
