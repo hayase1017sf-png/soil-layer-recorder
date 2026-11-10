@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v71 保存診断＋IndexedDB二重保存＋色補正版16 PWA</title>
+<title>土層記載文作成アプリ v72 不一致保全＋保存診断＋IndexedDB二重保存＋色補正版16 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -270,13 +270,17 @@ textarea{min-height:120px;resize:vertical}
 </style>
 
 
-<style id="v71-storage-diagnostics-style">
+<style id="v72-storage-diagnostics-style">
 .storage-diagnostics{margin:12px 0 16px;padding:12px 14px;border:1px solid #cfd8e3;border-radius:10px;background:#f8fafc}
 .storage-diagnostics-title{font-weight:700;margin-bottom:8px}
 .storage-diagnostics-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;font-size:13px;line-height:1.5}
 .storage-diag-ok{color:#176b2c;font-weight:700}.storage-diag-warn{color:#9a3412;font-weight:700}.storage-diag-muted{color:#666}
 .storage-diagnostics .btn{margin-top:10px;padding:7px 10px;font-size:12px}
-@media(max-width:600px){.storage-diagnostics-grid{grid-template-columns:1fr}}
+.storage-conflict{display:none;margin-top:10px;padding:10px;border:1px solid #f0b37e;border-radius:8px;background:#fff7ed;font-size:12px;line-height:1.6}
+.storage-conflict.visible{display:block}
+.storage-conflict-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}
+.storage-conflict-actions .btn{margin-top:0}
+@media(max-width:600px){.storage-diagnostics-grid{grid-template-columns:1fr}.storage-conflict-actions{display:grid;grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -342,6 +346,15 @@ textarea{min-height:120px;resize:vertical}
         <div>永続保存：<span id="diagPersistStatus">確認中...</span></div>
       </div>
       <div id="diagCheckedAt" class="storage-diag-muted" style="margin-top:7px;font-size:12px">最終確認：--</div>
+      <div id="storageConflictBox" class="storage-conflict">
+        <b>保存内容に不一致があります。自動上書きを停止しています。</b>
+        <div id="storageConflictDetails" style="margin-top:5px"></div>
+        <div class="storage-conflict-actions">
+          <button class="btn" type="button" onclick="resolveStorageConflict('local')">localStorage側を採用</button>
+          <button class="btn" type="button" onclick="resolveStorageConflict('idb')">IndexedDB側を採用</button>
+        </div>
+        <div class="storage-diag-muted" style="margin-top:6px">採用前に両方の内容をIndexedDB内の退避データとして保存します。</div>
+      </div>
       <button class="btn" type="button" onclick="updateStorageDiagnostics()">保存状態を再確認</button>
     </div>
     <input id="savedSearch" class="saved-search" type="search" placeholder="現場名・調査区・検出面・遺構名を検索" oninput="renderSaved()">
@@ -405,58 +418,107 @@ async function idbGet(k){const db=await openSoilDB();return new Promise((resolve
 async function idbDelete(k){const db=await openSoilDB();return new Promise((resolve,reject)=>{const tx=db.transaction(IDB_STORE_NAME,"readwrite");tx.objectStore(IDB_STORE_NAME).delete(k);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error)})}
 function idbMirrorSet(k,v){idbSet(k,v).catch(()=>{})}
 function removePersistentKey(k){try{localStorage.removeItem(k)}catch(e){} idbDelete(k).catch(()=>{})}
+let storageHistoryConflict=false;
+let storageHistoryConflictData=null;
+function historyInfo(raw){
+ const count=parseHistoryCount(raw);
+ let latest="";
+ try{
+  const x=JSON.parse(raw||"{}");
+  const vals=x&&typeof x==="object"&&!Array.isArray(x)?Object.values(x):[];
+  let best=0;
+  vals.forEach(v=>{
+   if(!v||typeof v!=="object")return;
+   const candidates=[v.savedAt,v.updatedAt,v.recordDate];
+   candidates.forEach(c=>{const t=Date.parse(c||"");if(Number.isFinite(t)&&t>best)best=t});
+  });
+  if(best)latest=new Date(best).toLocaleString("ja-JP");
+ }catch(e){}
+ return {count,latest};
+}
 async function migrateStorageToIndexedDB(){
  try{
   await openSoilDB();
+  storageHistoryConflict=false;storageHistoryConflictData=null;
   for(const k of PERSISTENT_KEYS){
    let local=null;try{local=localStorage.getItem(k)}catch(e){}
    const indexed=await idbGet(k);
-   if(local!==null){
-    // 既存localStorageを優先してIndexedDBへコピー。旧データは残す。
+   if(local!==null&&indexed===undefined){
     await idbSet(k,local);
-   }else if(indexed!==undefined){
-    // localStorageだけ失われていてIndexedDBが残っている場合は自動復旧。
+   }else if(local===null&&indexed!==undefined){
     try{localStorage.setItem(k,indexed)}catch(e){}
+   }else if(local!==null&&indexed!==undefined&&local!==indexed){
+    // v72: 両方に内容があり不一致の場合は勝手に上書きしない。
+    if(k===STORAGE_KEY){storageHistoryConflict=true;storageHistoryConflictData={local,indexed}}
    }
   }
-  try{
-   if(navigator.storage&&navigator.storage.persist){await navigator.storage.persist()}
-  }catch(e){}
+  try{if(navigator.storage&&navigator.storage.persist){await navigator.storage.persist()}}catch(e){}
   return true;
  }catch(e){return false}
 }
-function safeLocalSet(k,v,label){try{localStorage.setItem(k,v);idbMirrorSet(k,v);return true}catch(e){idbMirrorSet(k,v);alert((label||"データ")+"を端末に保存できませんでした。保存容量不足の可能性があります。\nJSONバックアップを作成してから不要なブラウザデータを整理してください。");return false}}
-
+function safeLocalSet(k,v,label){
+ try{
+  localStorage.setItem(k,v);
+  // 保存データに未解決の不一致がある間は、IndexedDBの旧内容を保護する。
+  if(!(k===STORAGE_KEY&&storageHistoryConflict))idbMirrorSet(k,v);
+  return true;
+ }catch(e){
+  if(!(k===STORAGE_KEY&&storageHistoryConflict))idbMirrorSet(k,v);
+  alert((label||"データ")+"を端末に保存できませんでした。保存容量不足の可能性があります。\nJSONバックアップを作成してから不要なブラウザデータを整理してください。");return false
+ }
+}
+async function resolveStorageConflict(source){
+ if(!storageHistoryConflict)return;
+ if(source!=="local"&&source!=="idb")return;
+ try{
+  let localRaw=null;try{localRaw=localStorage.getItem(STORAGE_KEY)}catch(e){}
+  const idbRaw=await idbGet(STORAGE_KEY);
+  if(localRaw===null||idbRaw===undefined){await migrateStorageToIndexedDB();await updateStorageDiagnostics();return}
+  const li=historyInfo(localRaw),ii=historyInfo(idbRaw);
+  const label=source==="local"?"localStorage":"IndexedDB";
+  if(!confirm(label+"側を正しい保存データとして採用しますか？\n\nlocalStorage："+(li.count??"?")+"件"+(li.latest?" / 最終更新 "+li.latest:"")+"\nIndexedDB："+(ii.count??"?")+"件"+(ii.latest?" / 最終更新 "+ii.latest:"")+"\n\n採用前に両方の内容を退避保存します。"))return;
+  const backupKey="historyConflictBackup::"+new Date().toISOString();
+  await idbSet(backupKey,JSON.stringify({createdAt:new Date().toISOString(),localStorage:localRaw,indexedDB:idbRaw}));
+  const chosen=source==="local"?localRaw:idbRaw;
+  localStorage.setItem(STORAGE_KEY,chosen);
+  await idbSet(STORAGE_KEY,chosen);
+  storageHistoryConflict=false;storageHistoryConflictData=null;
+  alert(label+"側を採用しました。採用前の両方の内容は退避済みです。画面を再読み込みします。");
+  location.reload();
+ }catch(e){alert("保存データの統合に失敗しました。現在のデータは上書きしていません。");}
+}
 function parseHistoryCount(raw){
  if(raw==null||raw==="")return 0;
  try{const x=JSON.parse(raw);return x&&typeof x==="object"&&!Array.isArray(x)?Object.keys(x).length:null}catch(e){return null}
 }
 async function updateStorageDiagnostics(){
- const lc=document.getElementById("diagLocalCount"),ic=document.getElementById("diagIdbCount"),ms=document.getElementById("diagMirrorStatus"),ps=document.getElementById("diagPersistStatus"),ct=document.getElementById("diagCheckedAt");
+ const lc=document.getElementById("diagLocalCount"),ic=document.getElementById("diagIdbCount"),ms=document.getElementById("diagMirrorStatus"),ps=document.getElementById("diagPersistStatus"),ct=document.getElementById("diagCheckedAt"),box=document.getElementById("storageConflictBox"),details=document.getElementById("storageConflictDetails");
  if(!lc||!ic||!ms||!ps||!ct)return;
  lc.textContent=ic.textContent=ms.textContent=ps.textContent="確認中...";
  lc.className=ic.className=ms.className=ps.className="";
  try{
   let localRaw=null;try{localRaw=localStorage.getItem(STORAGE_KEY)}catch(e){}
-  const localCount=parseHistoryCount(localRaw);
-  lc.textContent=localCount===null?"読み取りエラー":localCount+"件";
+  const localInfo=historyInfo(localRaw),localCount=localInfo.count;
+  lc.textContent=localCount===null?"読み取りエラー":localCount+"件"+(localInfo.latest?"（最終 "+localInfo.latest+"）":"");
   lc.className=localCount===null?"storage-diag-warn":"storage-diag-ok";
   let idbRaw;try{idbRaw=await idbGet(STORAGE_KEY)}catch(e){idbRaw=undefined}
-  const idbCount=idbRaw===undefined?0:parseHistoryCount(idbRaw);
-  ic.textContent=idbCount===null?"読み取りエラー":idbCount+"件";
+  const idbInfo=idbRaw===undefined?{count:0,latest:""}:historyInfo(idbRaw),idbCount=idbInfo.count;
+  ic.textContent=idbCount===null?"読み取りエラー":idbCount+"件"+(idbInfo.latest?"（最終 "+idbInfo.latest+"）":"");
   ic.className=idbCount===null?"storage-diag-warn":"storage-diag-ok";
   const exactMatch=(localRaw!==null&&idbRaw!==undefined&&localRaw===idbRaw);
   const bothEmpty=((localCount===0||localRaw===null)&&(idbCount===0||idbRaw===undefined));
-  if(exactMatch||bothEmpty){ms.textContent="正常（一致）";ms.className="storage-diag-ok"}
-  else{ms.textContent="要確認（不一致）";ms.className="storage-diag-warn"}
+  const mismatch=!(exactMatch||bothEmpty);
+  storageHistoryConflict=Boolean(localRaw!==null&&idbRaw!==undefined&&localRaw!==idbRaw);
+  storageHistoryConflictData=storageHistoryConflict?{local:localRaw,indexed:idbRaw}:null;
+  if(!mismatch){ms.textContent="正常（一致）";ms.className="storage-diag-ok"}
+  else{ms.textContent=storageHistoryConflict?"要確認（自動上書き停止）":"要確認（不一致）";ms.className="storage-diag-warn"}
+  if(box){box.classList.toggle("visible",storageHistoryConflict)}
+  if(details&&storageHistoryConflict){details.textContent="localStorage："+(localCount??"?")+"件"+(localInfo.latest?" / 最終更新 "+localInfo.latest:"")+"　｜　IndexedDB："+(idbCount??"?")+"件"+(idbInfo.latest?" / 最終更新 "+idbInfo.latest:"")}
   if(navigator.storage&&navigator.storage.persisted){
    const persisted=await navigator.storage.persisted();
-   ps.textContent=persisted?"有効":"未確認・未許可";
-   ps.className=persisted?"storage-diag-ok":"storage-diag-warn";
+   ps.textContent=persisted?"有効":"未確認・未許可";ps.className=persisted?"storage-diag-ok":"storage-diag-warn";
   }else{ps.textContent="判定非対応";ps.className="storage-diag-muted"}
- }catch(e){
-  ms.textContent="診断エラー";ms.className="storage-diag-warn";
- }
+ }catch(e){ms.textContent="診断エラー";ms.className="storage-diag-warn"}
  ct.textContent="最終確認："+new Date().toLocaleString("ja-JP");
 }
 function currentCustomItems(){return {soils:[...customSoils],mixes:[...customMixTypes],viscosities:[...customViscosities],firmnesses:[...customFirmnesses]}}
@@ -1147,7 +1209,9 @@ document.getElementById("nextOnly").onclick=nextOnly;
 (async function initializeApp(){
  await migrateStorageToIndexedDB();
  loadCustomItems();
- loadHistory();normalizeHistory();saveHistory();
+ loadHistory();normalizeHistory();
+ // v72: 不一致が未解決ならsaveHistory()でIndexedDBを上書きしない。
+ if(!storageHistoryConflict)saveHistory();
  const draftRestored=restoreDraft();
  renderTabs();renderPanel();if(draftRestored)generate();updateCurrent();renderSaved();updateTopStatus();updateAccumulated();
  await updateStorageDiagnostics();
