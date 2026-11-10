@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v73 保存容量診断＋PDF修正＋不一致保全＋IndexedDB二重保存＋色補正版16 PWA</title>
+<title>土層記載文作成アプリ v74 PDF復旧＋保存容量診断＋不一致保全＋IndexedDB二重保存＋色補正版16 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -1188,15 +1188,40 @@ function downloadTxtForSurface(sn,sec,surf){const e=surfaceEntries(surf,sn,sec);
 function downloadTxtForSection(sn,sec){const e=sectionEntries(sec,sn);if(!e.length)return;let text=sn+"\n"+(isUnclassified(sec)?"":"【"+sec+"】\n")+"\n";const surfs=[...new Set(e.map(x=>x.surfaceName))];surfs.forEach(surf=>{if(!isUnclassified(surf))text+="［"+surf+"］\n";const projects=[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))];projects.forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec,surf))+"\n"})});downloadText([sn,sec].filter(v=>v&&!isUnclassified(v)).join("_"),text)}
 function downloadTxtForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let text=sn+"\n\n";secs.forEach(sec=>{if(!isUnclassified(sec))text+="【"+sec+"】\n";const surfs=[...new Set(sectionEntries(sec,sn).map(x=>x.surfaceName))];surfs.forEach(surf=>{if(!isUnclassified(surf))text+="［"+surf+"］\n";[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))].forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec,surf))+"\n"})})});downloadText(sn,text)}
 function printHtml(titleText,body){
- const old=document.getElementById("printRoot");if(old)old.remove();
- const root=document.createElement("div");root.id="printRoot";root.setAttribute("aria-hidden","true");
- root.innerHTML=`<div class="print-page"><h1>${esc(titleText)}</h1>${body}</div>`;
- document.body.appendChild(root);
+ const frame=document.createElement("iframe");
+ frame.setAttribute("aria-hidden","true");
+ frame.style.position="fixed";
+ frame.style.right="0";
+ frame.style.bottom="0";
+ frame.style.width="0";
+ frame.style.height="0";
+ frame.style.border="0";
+ document.body.appendChild(frame);
+ const d=frame.contentDocument||frame.contentWindow.document;
+ d.open();
+ d.write(`<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(titleText)}</title><style>
+ body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;margin:18mm;line-height:1.8;color:#111}
+ h1{font-size:20pt;margin:0 0 8mm}
+ h2{font-size:15pt;margin:7mm 0 3mm}
+ h3{font-size:13pt;margin:5mm 0 2mm}
+ h4{font-size:12pt;margin:4mm 0 2mm}
+ p{font-size:10.5pt;border-bottom:1px solid #ddd;padding:2mm 0;margin:0}
+ @page{size:A4;margin:18mm}
+ </style></head><body><h1>${esc(titleText)}</h1>${body}</body></html>`);
+ d.close();
  let cleaned=false;
- const cleanup=()=>{if(cleaned)return;cleaned=true;window.removeEventListener("afterprint",cleanup);if(root.parentNode)root.remove()};
- window.addEventListener("afterprint",cleanup,{once:true});
- try{window.print()}catch(e){cleanup();alert("PDF出力を開始できませんでした。Safariの共有・印刷機能を確認してください。")}
- setTimeout(cleanup,60000);
+ const cleanup=()=>{if(cleaned)return;cleaned=true;setTimeout(()=>{if(frame.parentNode)frame.remove()},500)};
+ frame.contentWindow.addEventListener("afterprint",cleanup,{once:true});
+ setTimeout(()=>{
+  try{
+   frame.contentWindow.focus();
+   frame.contentWindow.print();
+   setTimeout(cleanup,30000);
+  }catch(e){
+   cleanup();
+   alert("PDF出力を開始できませんでした。Safariで再読み込みしてからもう一度お試しください。");
+  }
+ },300);
 }
 function printPdfForProject(t,sn=selectedSavedSite,sec=selectedSavedSection,surf=selectedSavedSurface){const e=projectEntries(t,sn,sec,surf);if(e.length){const body=(isUnclassified(sec)?"":`<h2>${esc(sec)}</h2>`)+(isUnclassified(surf)?"":`<h3>${esc(surf)}</h3>`)+`<h4>${esc(t)}</h4>`+exportDateHtml(e)+e.map(x=>`<p>${esc(x.text)}</p>`).join("");printHtml(exportParts(sn,sec,surf,t).join(" / "),body)}}
 function printPdfForSurface(sn,sec,surf){const e=surfaceEntries(surf,sn,sec);if(!e.length)return;let body=(isUnclassified(sec)?"":`<h2>${esc(sec)}</h2>`)+(isUnclassified(surf)?"":`<h3>${esc(surf)}</h3>`);[...new Set(e.map(x=>x.projectTitle))].forEach(t=>{const pe=projectEntries(t,sn,sec,surf);body+=`<h4>${esc(t)}</h4>`+exportDateHtml(pe)+pe.map(x=>`<p>${esc(x.text)}</p>`).join("")});printHtml([sn,sec,surf].filter(v=>v&&!isUnclassified(v)).join(" / "),body)}
