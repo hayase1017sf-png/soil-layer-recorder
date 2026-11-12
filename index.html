@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="土層記載">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>土層記載文作成アプリ v76 Safari・Chrome PDF分岐＋保存容量診断＋不一致保全＋IndexedDB二重保存＋色補正版16 PWA</title>
+<title>土層記載文作成アプリ v77 PDF直接生成＋保存容量診断＋不一致保全＋IndexedDB二重保存＋色補正版16 PWA</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f5f5f5;color:#222;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
@@ -1200,79 +1200,158 @@ function downloadTxtForProject(t,sn=selectedSavedSite,sec=selectedSavedSection,s
 function downloadTxtForSurface(sn,sec,surf){const e=surfaceEntries(surf,sn,sec);if(!e.length)return;const heads=[sn,sec,surf].filter(v=>v&&!isUnclassified(v));let text=heads.join("\n")+(heads.length?"\n\n":"");const projects=[...new Set(e.map(x=>x.projectTitle))];projects.forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec,surf))+"\n"});downloadText([sn,sec,surf].filter(v=>v&&!isUnclassified(v)).join("_"),text)}
 function downloadTxtForSection(sn,sec){const e=sectionEntries(sec,sn);if(!e.length)return;let text=sn+"\n"+(isUnclassified(sec)?"":"【"+sec+"】\n")+"\n";const surfs=[...new Set(e.map(x=>x.surfaceName))];surfs.forEach(surf=>{if(!isUnclassified(surf))text+="［"+surf+"］\n";const projects=[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))];projects.forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec,surf))+"\n"})});downloadText([sn,sec].filter(v=>v&&!isUnclassified(v)).join("_"),text)}
 function downloadTxtForSite(sn){const e=siteEntries(sn);if(!e.length)return;const secs=[...new Set(e.map(x=>x.sectionName))];let text=sn+"\n\n";secs.forEach(sec=>{if(!isUnclassified(sec))text+="【"+sec+"】\n";const surfs=[...new Set(sectionEntries(sec,sn).map(x=>x.surfaceName))];surfs.forEach(surf=>{if(!isUnclassified(surf))text+="［"+surf+"］\n";[...new Set(surfaceEntries(surf,sn,sec).map(x=>x.projectTitle))].forEach(t=>{text+=buildText(t,projectEntries(t,sn,sec,surf))+"\n"})})});downloadText(sn,text)}
-let currentPrintTitle="";
-let currentPrintBody="";
 
-function isIOSChrome(){
- return /CriOS/i.test(navigator.userAgent||"");
+function pdfSafeFileName(name){
+ return String(name||"土層記載").replace(/[\\/:*?"<>|]/g,"_").trim()||"土層記載";
 }
-function closePrintPreview(){
- const root=document.getElementById("printRoot");
- if(root)root.remove();
+function dataUrlToBytes(dataUrl){
+ const b64=dataUrl.split(",")[1]||"";
+ const bin=atob(b64),out=new Uint8Array(bin.length);
+ for(let i=0;i<bin.length;i++)out[i]=bin.charCodeAt(i);
+ return out;
 }
-function buildStandalonePrintPage(titleText,body){
- return `<!doctype html><html lang="ja"><head><meta charset="utf-8">
- <meta name="viewport" content="width=device-width,initial-scale=1">
- <title>${esc(titleText)}</title>
- <style>
- body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;margin:18mm;line-height:1.8;color:#111;background:#fff}
- .chrome-print-note{position:sticky;top:0;z-index:10;margin:-10mm -10mm 8mm;padding:10px 12px;background:#fff7ed;border:1px solid #f0b37e;border-radius:8px;font-size:14px;line-height:1.5}
- h1{font-size:20pt;margin:0 0 8mm}
- h2{font-size:15pt;margin:7mm 0 3mm}
- h3{font-size:13pt;margin:5mm 0 2mm}
- h4{font-size:12pt;margin:4mm 0 2mm}
- p{font-size:10.5pt;border-bottom:1px solid #ddd;padding:2mm 0;margin:0}
- @page{size:A4;margin:18mm}
- @media print{.chrome-print-note{display:none!important}body{margin:0}}
- </style></head><body>
- <div class="chrome-print-note">Chromeでは、このページの共有メニューから「印刷」を選んでください。</div>
- <h1>${esc(titleText)}</h1>${body}</body></html>`;
+function concatBytes(parts){
+ let total=0;parts.forEach(p=>total+=p.length);
+ const out=new Uint8Array(total);let off=0;
+ parts.forEach(p=>{out.set(p,off);off+=p.length});
+ return out;
 }
-function openChromePrintPage(){
- const html=buildStandalonePrintPage(currentPrintTitle,currentPrintBody);
- let w=null;
- try{w=window.open("","_blank")}catch(e){}
- if(!w){
-  alert("印刷用ページを開けませんでした。Chromeのポップアップ許可を確認してください。");
-  return;
+function asciiBytes(s){return new TextEncoder().encode(s)}
+function makePdfFromJpegs(images){
+ const pageW=595.28,pageH=841.89;
+ const pageCount=images.length;
+ const maxObj=2+pageCount*3;
+ const offsets=new Array(maxObj+1).fill(0);
+ const parts=[];
+ let pos=0;
+ const push=b=>{parts.push(b);pos+=b.length};
+ const pushText=s=>push(asciiBytes(s));
+ pushText("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n");
+ function objStart(id){offsets[id]=pos;pushText(id+" 0 obj\n")}
+ function objEnd(){pushText("endobj\n")}
+ objStart(1);pushText("<< /Type /Catalog /Pages 2 0 R >>\n");objEnd();
+ const kids=[];
+ for(let i=0;i<pageCount;i++)kids.push((3+i*3)+" 0 R");
+ objStart(2);pushText("<< /Type /Pages /Kids ["+kids.join(" ")+"] /Count "+pageCount+" >>\n");objEnd();
+ for(let i=0;i<pageCount;i++){
+   const pageObj=3+i*3,imgObj=4+i*3,contentObj=5+i*3;
+   const im=images[i];
+   objStart(pageObj);
+   pushText("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 "+pageW+" "+pageH+"] /Resources << /XObject << /Im"+i+" "+imgObj+" 0 R >> >> /Contents "+contentObj+" 0 R >>\n");
+   objEnd();
+   objStart(imgObj);
+   pushText("<< /Type /XObject /Subtype /Image /Width "+im.width+" /Height "+im.height+" /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length "+im.bytes.length+" >>\nstream\n");
+   push(im.bytes);pushText("\nendstream\n");objEnd();
+   const content="q\n"+pageW+" 0 0 "+pageH+" 0 0 cm\n/Im"+i+" Do\nQ\n";
+   objStart(contentObj);
+   pushText("<< /Length "+asciiBytes(content).length+" >>\nstream\n"+content+"endstream\n");
+   objEnd();
  }
- try{
-  w.document.open();
-  w.document.write(html);
-  w.document.close();
-  w.focus();
- }catch(e){
-  try{w.close()}catch(_){}
-  alert("印刷用ページを開けませんでした。SafariでのPDF保存をお試しください。");
- }
+ const xrefPos=pos;
+ pushText("xref\n0 "+(maxObj+1)+"\n");
+ pushText("0000000000 65535 f \n");
+ for(let i=1;i<=maxObj;i++)pushText(String(offsets[i]).padStart(10,"0")+" 00000 n \n");
+ pushText("trailer\n<< /Size "+(maxObj+1)+" /Root 1 0 R >>\nstartxref\n"+xrefPos+"\n%%EOF");
+ return new Blob([concatBytes(parts)],{type:"application/pdf"});
 }
-function runPrintFromPreview(){
- if(isIOSChrome()){
-  openChromePrintPage();
-  return;
+function collectPdfBlocks(titleText,bodyHtml){
+ const blocks=[{text:String(titleText||""),size:34,weight:700,before:0,after:18}];
+ const tmp=document.createElement("div");tmp.innerHTML=bodyHtml;
+ const nodes=[...tmp.children];
+ nodes.forEach(el=>{
+   const t=(el.textContent||"").trim();if(!t)return;
+   const tag=el.tagName;
+   if(tag==="H2")blocks.push({text:t,size:27,weight:700,before:20,after:8});
+   else if(tag==="H3")blocks.push({text:t,size:24,weight:700,before:16,after:7});
+   else if(tag==="H4")blocks.push({text:t,size:22,weight:700,before:13,after:6});
+   else blocks.push({text:t,size:20,weight:400,before:5,after:5});
+ });
+ return blocks;
+}
+function wrapCanvasText(ctx,text,maxWidth){
+ const chars=Array.from(String(text||""));
+ const lines=[];let line="";
+ for(const ch of chars){
+   if(ch==="\n"){lines.push(line);line="";continue}
+   const test=line+ch;
+   if(line&&ctx.measureText(test).width>maxWidth){lines.push(line);line=ch}
+   else line=test;
  }
- try{window.print()}catch(e){alert("印刷画面を開けませんでした。Safariで開いてからもう一度お試しください。")}
+ if(line||!lines.length)lines.push(line);
+ return lines;
+}
+function renderPdfPages(titleText,bodyHtml){
+ const W=1240,H=1754,M=90,contentW=W-M*2,bottom=H-M;
+ const blocks=collectPdfBlocks(titleText,bodyHtml);
+ const pages=[];
+ let canvas=document.createElement("canvas"),ctx;
+ function resetPage(){
+   canvas=document.createElement("canvas");canvas.width=W;canvas.height=H;
+   ctx=canvas.getContext("2d",{alpha:false});
+   ctx.fillStyle="#fff";ctx.fillRect(0,0,W,H);
+   ctx.fillStyle="#111";ctx.textBaseline="top";
+ }
+ function savePage(){
+   const url=canvas.toDataURL("image/jpeg",0.92);
+   pages.push({width:W,height:H,bytes:dataUrlToBytes(url)});
+ }
+ resetPage();
+ let y=M;
+ for(const b of blocks){
+   const font=`${b.weight||400} ${b.size}px -apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif`;
+   ctx.font=font;
+   const lineH=Math.round(b.size*1.55);
+   const lines=wrapCanvasText(ctx,b.text,contentW);
+   const need=(b.before||0)+lines.length*lineH+(b.after||0);
+   if(y+need>bottom && y>M+20){savePage();resetPage();y=M}
+   y+=b.before||0;
+   ctx.font=font;ctx.fillStyle="#111";
+   for(const line of lines){
+     if(y+lineH>bottom){savePage();resetPage();y=M;ctx.font=font;ctx.fillStyle="#111"}
+     ctx.fillText(line,M,y);
+     y+=lineH;
+   }
+   y+=b.after||0;
+   if((b.weight||400)<700){
+     ctx.strokeStyle="#ddd";ctx.lineWidth=1;
+     ctx.beginPath();ctx.moveTo(M,y-2);ctx.lineTo(W-M,y-2);ctx.stroke();
+   }
+ }
+ savePage();
+ return pages;
+}
+function saveOrSharePdf(blob,fileName){
+ const file=new File([blob],fileName,{type:"application/pdf"});
+ if(navigator.share&&navigator.canShare){
+   try{
+     if(navigator.canShare({files:[file]})){
+       navigator.share({files:[file],title:fileName}).catch(err=>{
+         if(err&&err.name==="AbortError")return;
+         fallbackOpenPdf(blob,fileName);
+       });
+       return;
+     }
+   }catch(e){}
+ }
+ fallbackOpenPdf(blob,fileName);
+}
+function fallbackOpenPdf(blob,fileName){
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download=fileName;a.target="_blank";a.rel="noopener";
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),60000);
 }
 function printHtml(titleText,body){
- closePrintPreview();
- currentPrintTitle=titleText;
- currentPrintBody=body;
- const chrome=isIOSChrome();
- const root=document.createElement("div");
- root.id="printRoot";
- root.className="print-preview-open";
- root.innerHTML=`<div class="print-preview-card">
-   <div class="print-actions">
-     <button class="btn primary" type="button" onclick="runPrintFromPreview()">${chrome?"印刷用ページを開く":"印刷／PDF保存"}</button>
-     <button class="btn" type="button" onclick="closePrintPreview()">閉じる</button>
-   </div>
-   ${chrome?'<div class="storage-persist-note" style="margin:0 0 12px">iPhone版Chromeでは直接印刷画面を開けない場合があります。「印刷用ページを開く」→ Chromeの共有メニュー →「印刷」の順に進んでください。</div>':""}
-   <div class="print-preview-body">
-     <div class="print-page"><h1>${esc(titleText)}</h1>${body}</div>
-   </div>
- </div>`;
- document.body.appendChild(root);
- root.scrollTop=0;
+ try{
+   const pages=renderPdfPages(titleText,body);
+   const blob=makePdfFromJpegs(pages);
+   const fileName=pdfSafeFileName(titleText)+".pdf";
+   saveOrSharePdf(blob,fileName);
+ }catch(e){
+   console.error(e);
+   alert("PDFの作成に失敗しました。データは変更されていません。");
+ }
 }
 function printPdfForProject(t,sn=selectedSavedSite,sec=selectedSavedSection,surf=selectedSavedSurface){const e=projectEntries(t,sn,sec,surf);if(e.length){const body=(isUnclassified(sec)?"":`<h2>${esc(sec)}</h2>`)+(isUnclassified(surf)?"":`<h3>${esc(surf)}</h3>`)+`<h4>${esc(t)}</h4>`+exportDateHtml(e)+e.map(x=>`<p>${esc(x.text)}</p>`).join("");printHtml(exportParts(sn,sec,surf,t).join(" / "),body)}}
 function printPdfForSurface(sn,sec,surf){const e=surfaceEntries(surf,sn,sec);if(!e.length)return;let body=(isUnclassified(sec)?"":`<h2>${esc(sec)}</h2>`)+(isUnclassified(surf)?"":`<h3>${esc(surf)}</h3>`);[...new Set(e.map(x=>x.projectTitle))].forEach(t=>{const pe=projectEntries(t,sn,sec,surf);body+=`<h4>${esc(t)}</h4>`+exportDateHtml(pe)+pe.map(x=>`<p>${esc(x.text)}</p>`).join("")});printHtml([sn,sec,surf].filter(v=>v&&!isUnclassified(v)).join(" / "),body)}
